@@ -1,0 +1,33 @@
+
+.max-w-xs {
+    max-width: 20rem;
+}
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+.tag-color-0 { background-color: #FECACA; }
+.tag-color-1 { background-color: #FED7AA; }
+.tag-color-2 { background-color: #FEF08A; }
+.tag-color-3 { background-color: #D9F99D; }
+.tag-color-4 { background-color: #BFDBFE; }
+.tag-color-5 { background-color: #DDD6FE; }
+.tag-color-6 { background-color: #FBCFE8; }
+.tag-color-7 { background-color: #FDE68A; }
+.weekend-row {
+    background-color: #FFF7ED;
+    border-left: 4px solid #F97316;
+}
+.weekend-row:hover {
+    background-color: #FFEDD5;
+}
