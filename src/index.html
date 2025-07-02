@@ -10,6 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body class="bg-gray-50 min-h-screen">
     <div class="container mx-auto px-4 py-8">
         <!-- Header -->
@@ -45,6 +46,10 @@
                 <div class="flex-1">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Filter Tags</label>
                     <select id="tagFilter" multiple placeholder="Select tags to include..."></select>
+                </div>
+                <div class="flex-1">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Special Tags! (comma separated)</label>
+                    <input type="text" id="specialTags" class="border rounded-md px-3 py-2 text-sm w-full" placeholder="PLR,SUPPORT,etc">
                 </div>
                 <div class="flex items-center">
                     <input type="checkbox" id="excludeBreaks" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
@@ -123,6 +128,6 @@
         </div>
     </div>
 
-    <script src="app.js" defer type="module"></script>
+    <script src="js/all.js" type="module"></script>
 </body>
 </html>
