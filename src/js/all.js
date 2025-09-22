@@ -1,7 +1,14 @@
 import { syncSpecialTags, generateTableHeader, generateTableBody, generateTagLegend } from './ui.js';
 import { sampleData } from './demo.js';
-import { roundToHalf } from './utils.js';
+import { roundToHalf, copyAndEmailTimeTable2, datediff, durationToSeconds } from './utils.js';
 
+export const DEFAULT_EXCLUDED_TAGS = [
+    '#docs', '#custom', '#translations', '#codereview', '#work', '#support', '#bug', '#auth', '#review',
+    '#rest'
+];
+
+const REST_TIME_MIN = 60;//1h
+                
 document.addEventListener('DOMContentLoaded', function() {
     console.debug("loaded");
     
@@ -24,6 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const excludeBreaksCheckbox = document.getElementById('excludeBreaks');
     const roundToHalvesCheckbox = document.getElementById('roundToHalves');
 
+    document.getElementById('copyAndEmailBtn').addEventListener('click', copyAndEmailTimeTable2);
     // Set default date range (last 7 days)
     const today = new Date();
     const sevenDaysAgo = new Date();
@@ -122,6 +130,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Extract all unique tags from both tags array and notes
         const allTags = new Set();
+            //add default tags
+            allTags.add(`#custom`);
         const allSupportTags = new Set();
         filteredSessions.forEach(session => {
             // Add regular tags
@@ -156,9 +166,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 const hashtags_custom = session.notes.match(/#[a-zA-Z]+/) || [];
                 hashtags_custom.forEach(tag => {
                     console.debug(`!!! custom hash tag: ${tag}`);
-                    allSupportTags.add(`${tag.toLowerCase()}`);
-                    if(specialTags.length > 0 && !selectedTags.includes(tag.toLowerCase())) {
-                        selectedTags.push(tag);
+                    if (DEFAULT_EXCLUDED_TAGS.includes(tag.toLowerCase())) {
+                        allTags.add(tag);
+                    } else {
+                        allSupportTags.add(`${tag.toLowerCase()}`);
+                        if(specialTags.length > 0 && !selectedTags.includes(tag.toLowerCase())) {
+                            selectedTags.push(tag);
+                        }
                     }
                 });
             }
@@ -204,16 +218,41 @@ document.addEventListener('DOMContentLoaded', function() {
         const timeData = {};
         Object.keys(sessionsByDate).forEach(date => {
             timeData[date] = {};
+            let restTime = {};
             uniqueTags.forEach(tag => {
                 timeData[date][tag] = 0;
             });
 
+            //edge cases for correctness checks:
+            //  id=1751376002892 <- faulty duration with one break
+            //  1754945234965, 1755557508145, 1755782808075, 1756132074529 <- durationSec not updated with break
+            //
             console.debug(`>>> Processing sessions for ${date}`);
             sessionsByDate[date].forEach(session => {
-                const durationHours_real = session.durationSec / 3600;
-                const durationHours = roundToHalvesCheckbox.checked ? roundToHalf(durationHours_real) : durationHours_real;
+                console.debug(`   > Processing session: ${session.startTime}; tags: ${session.tags}; notes: ${session.notes}`);
+                const accumBreak = session.accumulatedPauseTimeSec ? session.accumulatedPauseTimeSec / 3600 : 0;
+                const durationHours_session = session.durationSec / 3600; 
+                const duration_real = datediff(session.startTime, session.endTime).hours;
+                const is_correct_record = Math.abs(duration_real - (accumBreak + durationHours_session)) < 0.05;
 
-                console.debug(`   initial Duration: ${durationHours}; tags: ${session.tags}; notes: ${session.notes}`);
+                let durationHours = durationHours_session;
+                if(!is_correct_record) {
+                    //TODO known bug: when editing session durationSec is not updated with accumulatedPauseTimeSec
+                    // in that case session.duration is the same as session.durationSec, but should be subtracted, i.e.
+                    // duration = session.durationSec - session.accumulatedPauseTimeSec
+                    console.debug(`   real Duration(calculated): ${duration_real} !==  ${accumBreak + durationHours_session}`);
+                    console.error(`   !!! Incorrect record: ${session.id} - ${session.notes}`);
+                    console.debug(`   > Adjusting duration... ${session.durationSec} === ${durationToSeconds(session.duration)}`);
+                    if(!session.isBreak){
+                        if(Math.abs(durationToSeconds(session.duration) - session.durationSec) < 60) {
+                            durationHours -= accumBreak
+                        }
+                    }
+                }
+                durationHours = (roundToHalvesCheckbox.checked ? roundToHalf(durationHours) : durationHours);
+                console.debug(`   initial Duration: ${durationHours_session}`);
+                console.debug(`   accumBreak: ${accumBreak}`);
+                console.debug(`   final Duration: ${durationHours}`);
 
                 // First check for special tags in notes (only if special tags are provided)
                 let foundSpecialTag = false;
@@ -222,7 +261,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     for (const specialTag of specialTags) {
                         console.debug(`\t > Checking for ${specialTag} in ${session.notes}`);
                         if (session.notes.toLowerCase().includes(specialTag)) {
-                            foundSpecialTag = `${specialTag} support`;
+                                foundSpecialTag = `${specialTag} support`;
                             break;
                         }
                     }
@@ -258,12 +297,47 @@ document.addEventListener('DOMContentLoaded', function() {
                     session.tags.forEach(tag => {
                         console.debug(`\t > Checking for ${tag} in ${session.tags}`);
                         if (selectedTags.includes(tag)) {
-                            timeData[date][tag] += durationHours;
+                            if("work" === tag) {
+                                timeData[date]["#custom"] += durationHours;
+                            } else {
+                                timeData[date][tag] += durationHours;
+                            }
                         }
                     });
                 }
             });
             console.debug(`<<< <<<< end of ${date}`);
+
+            //count tags and equally spread Rest_time_min accross them
+            //{
+                Object.keys(timeData[date]).forEach(tag => { 
+                    if(!timeData[date] || !(timeData[date][tag] > 0)) { return; }
+                    console.debug(`\t > timedata ${tag}: ${timeData[date][tag]}h`);
+                    restTime[tag] = 1;
+                    console.debug(`\t > resttimedata ${tag}: ${restTime[tag]} marked<<<<`);
+                });
+
+                let rest_spread = REST_TIME_MIN/Object.keys(restTime).length/60;
+                Object.keys(restTime).forEach(tag => {
+                    console.debug(`\t >>>> readmarked resttimedata ${tag} ${rest_spread}h}`);
+                    
+                    timeData[date][tag] += rest_spread;
+                    console.debug(`\t > Adding rest time ${rest_spread}h to ${tag} ${timeData[date][tag]}h}`);
+                    
+                });
+            //}
+        });
+
+        //remove empty time tags and round incomplete
+        Object.keys(timeData).forEach(date => {
+            Object.keys(timeData[date]).forEach(tag => {             
+                if(timeData[date][tag] === 0 || isNaN(timeData[date][tag])) {
+                    delete timeData[date][tag];
+                } else {
+                    console.debug(`\t > Rounding ${timeData[date][tag]}h for ${tag}`);
+                    timeData[date][tag] = roundToHalf(timeData[date][tag]);
+                }
+            });
         });
 
         // Calculate statistics
@@ -275,9 +349,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
         Object.keys(timeData).forEach(date => {
             let dayTotal = 0;
+            console.debug(`>>> Calculating totals for ${date}`);
             uniqueTags.forEach(tag => {
-                tagTotals[tag] += timeData[date][tag];
-                dayTotal += timeData[date][tag];
+                if(timeData[date][tag] !== undefined) {
+                    console.debug(`\t > Adding ${timeData[date][tag]}h to ${tag}`);
+                    tagTotals[tag] += timeData[date][tag];
+                    dayTotal += timeData[date][tag];
+                }
             });
             totalHours += dayTotal;
         });

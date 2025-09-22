@@ -103,9 +103,14 @@ export function generateTableBody(tbody, timeData, sessionsByDate, uniqueTags, s
                         ${hoursFormatted}h
                     </div>
                 `;
-            } else {
-                td.textContent = '-';
-            }
+                if("work" === tag) {
+                    console.error(`tag work should be empty (swapped by #custom), but was instead: ${hoursFormatted}h`);
+                }
+            } else 
+                if("work" !== tag) {
+                    td.textContent = '-';
+                }
+            
 
             tr.appendChild(td);
         });
@@ -168,9 +173,11 @@ export function generateTableBody(tbody, timeData, sessionsByDate, uniqueTags, s
                     ${totalHours.toFixed(1)}h
                 </div>
             `;
-        } else {
-            td.textContent = '-';
-        }
+        } else 
+            if("work" !== tag) {
+                td.textContent = '-';
+            }
+        
         
         totalsRow.appendChild(td);
     });
