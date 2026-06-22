@@ -65,6 +65,7 @@ export function computeTimeData(data, options = {}) {
         selectedTags = null,
         roundToHalvesEnabled = false,
         restTimeMin = REST_TIME_MIN,
+        debugMode = false,
     } = options;
 
     if (!data || !data.sessions || !Array.isArray(data.sessions)) {
@@ -73,7 +74,12 @@ export function computeTimeData(data, options = {}) {
 
     const { sessions } = data;
 
-    const filteredSessions = filterSessions(sessions, { startDate, endDate, excludeBreaks });
+    const filteredSessions = filterSessions(sessions, { startDate, endDate, excludeBreaks: false });
+    const displaySessions = filterSessions(sessions, { startDate, endDate, excludeBreaks });
+
+    if (debugMode) {
+        console.debug(`[computeTimeData] sessions=${filteredSessions.length} (compute) display=${displaySessions.length} range=${startDate}..${endDate} excludeBreaks=${excludeBreaks} specialTags=${JSON.stringify(specialTags)} selectedTags=${JSON.stringify(selectedTags)} roundToHalves=${roundToHalvesEnabled} restTimeMin=${restTimeMin}`);
+    }
 
     function computeMaxDays(durationHours) {
         if (durationHours <= 3) return 1;
@@ -94,7 +100,7 @@ export function computeTimeData(data, options = {}) {
     }
 
     const sessionsByDate = {};
-    filteredSessions.forEach(session => {
+    displaySessions.forEach(session => {
         const start = new Date(session.startTime);
         const end = computeEffectiveEnd(start, new Date(session.endTime), session.durationSec / 3600);
         const cursor = new Date(start);
@@ -204,6 +210,10 @@ export function computeTimeData(data, options = {}) {
                 let dayDuration = totalDurationHours * proportion;
                 dayDuration = roundToHalvesEnabled ? roundToHalf(dayDuration) : dayDuration;
 
+                if (debugMode) {
+                    console.debug(`[computeTimeData]   date=${dateStr} id=${session.id} dayMs=${dayMs} totalMs=${totalMs} prop=${proportion.toFixed(4)} dur=${dayDuration.toFixed(4)}h${roundToHalvesEnabled ? ' (rounded)' : ''}`);
+                }
+
                 allocateTime(dateEntry(dateStr), session, dayDuration);
             }
 
@@ -220,11 +230,24 @@ export function computeTimeData(data, options = {}) {
         });
 
         const restCount = Object.keys(restTime).length;
+        const preRest = Object.fromEntries(
+            Object.entries(timeData[date]).filter(([_, v]) => v > 0)
+        );
         if (restCount > 0) {
             const restSpread = restTimeMin / restCount / 60;
             Object.keys(restTime).forEach(tag => {
                 timeData[date][tag] += restSpread;
             });
+            const postRest = Object.fromEntries(
+                Object.entries(timeData[date]).filter(([_, v]) => v > 0)
+            );
+            if (debugMode) {
+                console.debug(`[computeTimeData] ${date}: restCount=${restCount} spread=${restSpread.toFixed(4)}h  pre-rest=${JSON.stringify(preRest)}  post-rest=${JSON.stringify(postRest)}`);
+            }
+        } else {
+            if (debugMode) {
+                console.debug(`[computeTimeData] ${date}: restCount=0 (no spread)  values=${JSON.stringify(preRest)}`);
+            }
         }
     });
 
@@ -236,6 +259,12 @@ export function computeTimeData(data, options = {}) {
                 timeData[date][tag] = roundToHalf(timeData[date][tag]);
             }
         });
+        if (debugMode) {
+            const final = Object.fromEntries(
+                Object.entries(timeData[date]).filter(([_, v]) => v > 0)
+            );
+            console.debug(`[computeTimeData] ${date} FINAL: ${JSON.stringify(final)}`);
+        }
     });
 
     let totalHours = 0;
@@ -264,6 +293,13 @@ export function computeTimeData(data, options = {}) {
         if (tagTotals[tag] > maxHours) {
             maxHours = tagTotals[tag];
             topTag = tag;
+        }
+    });
+
+    // Ensure sessionsByDate has entries for all timeData dates
+    Object.keys(timeData).forEach(date => {
+        if (!sessionsByDate[date]) {
+            sessionsByDate[date] = [];
         }
     });
 

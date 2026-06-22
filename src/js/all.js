@@ -13,6 +13,7 @@ export function processData(data, options = {}) {
         specialTags: specialTagsOverride,
         roundToHalves: roundToHalvesOverride,
         selectedTags: selectedTagsOverride,
+        debugMode: debugModeOverride,
     } = options;
 
     const startDate = startDateOverride || document.getElementById('startDate').value;
@@ -21,6 +22,7 @@ export function processData(data, options = {}) {
     const specialTagsInput = specialTagsOverride !== undefined ? specialTagsOverride : document.getElementById('specialTags').value;
     const specialTags = specialTagsInput.split(',').map(tag => tag.trim()).filter(tag => tag);
     const roundToHalvesEnabled = roundToHalvesOverride !== undefined ? roundToHalvesOverride : document.getElementById('roundToHalves').checked;
+    const debugMode = debugModeOverride !== undefined ? debugModeOverride : document.getElementById('debugMode')?.checked || false;
 
     const tagFilter = document.getElementById('tagFilter')?.tomselect;
     const tableContainer = document.getElementById('tableContainer');
@@ -82,6 +84,10 @@ export function processData(data, options = {}) {
 
     const effectiveSelectedTags = selectedTagsOverride || (tagFilter?.items.length > 0 ? tagFilter.items : null);
 
+    if (debugMode) {
+        console.debug('[processData] options:', { startDate, endDate, excludeBreaks, specialTags, selectedTags: effectiveSelectedTags, roundToHalvesEnabled });
+    }
+
     const result = computeTimeData(data, {
         startDate,
         endDate,
@@ -89,6 +95,7 @@ export function processData(data, options = {}) {
         specialTags,
         selectedTags: effectiveSelectedTags,
         roundToHalvesEnabled,
+        debugMode,
     });
 
     if (!result || Object.keys(result.timeData).length === 0) {
@@ -96,11 +103,57 @@ export function processData(data, options = {}) {
         return;
     }
 
-    const { uniqueTags, timeData, sessionsByDate, totalHours, avgDailyHours, topTag, topTagHours } = result;
+    const { uniqueTags, timeData, sessionsByDate } = result;
 
-    totalTimeEl.textContent = `${totalHours.toFixed(1)} hours`;
-    topTagEl.textContent = `${topTag} (${topTagHours.toFixed(1)}h)`;
-    avgDailyEl.textContent = `${avgDailyHours.toFixed(1)} hours`;
+    if (excludeBreaks) {
+        const restIdx = uniqueTags.indexOf('rest');
+        if (restIdx !== -1) {
+            uniqueTags.splice(restIdx, 1);
+        }
+        Object.keys(timeData).forEach(date => {
+            delete timeData[date]['rest'];
+        });
+        Object.keys(timeData).forEach(date => {
+            const hasData = Object.values(timeData[date]).some(v => v > 0);
+            if (!hasData) {
+                delete timeData[date];
+                delete sessionsByDate[date];
+            }
+        });
+    }
+
+    if (Object.keys(timeData).length === 0) {
+        alert('No sessions found in the selected date range.');
+        return;
+    }
+
+    const displayTotalHours = Object.values(timeData).reduce((sum, tags) => {
+        return sum + Object.values(tags).reduce((a, b) => a + b, 0);
+    }, 0);
+    const uniqueDates = Object.keys(timeData).length;
+    const displayAvgDaily = uniqueDates > 0 ? displayTotalHours / uniqueDates : 0;
+
+    let displayTopTag = '-';
+    let displayTopHours = 0;
+    const tagTotals = {};
+    uniqueTags.forEach(tag => tagTotals[tag] = 0);
+    Object.keys(timeData).forEach(date => {
+        uniqueTags.forEach(tag => {
+            if (timeData[date][tag] !== undefined) {
+                tagTotals[tag] += timeData[date][tag];
+            }
+        });
+    });
+    uniqueTags.forEach(tag => {
+        if (tagTotals[tag] > displayTopHours) {
+            displayTopHours = tagTotals[tag];
+            displayTopTag = tag;
+        }
+    });
+
+    totalTimeEl.textContent = `${displayTotalHours.toFixed(1)} hours`;
+    topTagEl.textContent = `${displayTopTag} (${displayTopHours.toFixed(1)}h)`;
+    avgDailyEl.textContent = `${displayAvgDaily.toFixed(1)} hours`;
 
     generateTableHeader(timeTable, new Set(), uniqueTags);
     generateTableBody(timeTable.querySelector('tbody'), timeData, sessionsByDate, uniqueTags, specialTags, tagFilter || { items: [] });
@@ -112,7 +165,9 @@ export function processData(data, options = {}) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.debug("loaded");
+    if (document.getElementById('debugMode')?.checked) {
+        console.debug("loaded");
+    }
 
     const jsonFileInput = document.getElementById('jsonFile');
     const uploadBtn = document.getElementById('uploadBtn');
