@@ -60,10 +60,14 @@ export function generateTableBody(tbody, timeData, sessionsByDate, uniqueTags, s
         
     sortedDates.forEach(date => {
         const tr = document.createElement('tr');
-        const isWeekend = sessionsByDate[date].some(session => session.dayType === 'Weekend');
-        tr.className = isWeekend ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-gray-50';
+        const dateObj = new Date(date);
+        const dayOfWeek = dateObj.getDay();
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        const rowBg = isWeekend ? 'bg-red-50' : 'bg-white';
+        const hoverBg = isWeekend ? 'hover:bg-red-100' : 'hover:bg-gray-50';
+        tr.className = `${rowBg} ${hoverBg}`;
 
-        addNotesCell(tr, date, sessionsByDate, specialTags, tagFilter);
+        addNotesCell(tr, date, sessionsByDate, specialTags, tagFilter, isWeekend);
 
         // Calculate day total
         let dayTotal = 0;
@@ -73,14 +77,13 @@ export function generateTableBody(tbody, timeData, sessionsByDate, uniqueTags, s
 
         // Total cell
         const totalTd = document.createElement('td');
-        totalTd.className = 'px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 sticky left-0 bg-white';
+        totalTd.className = `px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 sticky left-0 ${isWeekend ? 'bg-red-50' : 'bg-white'}`;
         totalTd.textContent = `${dayTotal.toFixed(1)}h`;
         tr.appendChild(totalTd);
 
         // Date cell
         const dateTd = document.createElement('td');
-        dateTd.className = 'px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 sticky left-0 bg-white';
-        const dateObj = new Date(date);
+        dateTd.className = `px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 sticky left-0 ${isWeekend ? 'bg-red-50' : 'bg-white'}`;
         dateTd.textContent = dateObj.toLocaleDateString('en-US', { 
             weekday: 'short', 
             month: 'short', 
@@ -218,9 +221,9 @@ export function syncSpecialTags(tagFilter) {
  * @param {Set} specialTags - A set of special tags.
  * @param {Object} tagFilter - The tag filter object.
  */
-export function addNotesCell(tr, date, sessionsByDate, specialTags, tagFilter) {
+export function addNotesCell(tr, date, sessionsByDate, specialTags, tagFilter, isWeekend) {
     const notesTd = document.createElement('td');
-    notesTd.className = 'px-6 py-4 text-sm text-gray-500 sticky left-0 bg-white max-w-xs break-words whitespace-normal';
+    notesTd.className = `px-6 py-4 text-sm text-gray-500 sticky left-0 ${isWeekend ? 'bg-red-50' : 'bg-white'} max-w-xs break-words whitespace-normal`;
 
     // Collect notes that match selected tags (or all if no tags selected)
     const dayNotes = [];
