@@ -7,6 +7,196 @@ export const DEFAULT_EXCLUDED_TAGS = [
 export const sampleData = {
     "sessions": [
 
+
+        {
+            "id": 1778183198451,
+            "date": "2026-05-06",
+            "startTime": "2026-05-06T19:26:03.836Z",
+            "endTime": "2026-05-07T19:46:11.065Z",
+            "duration": "04:05:01",
+            "durationSec": 14701,
+            "accumulatedPauseTimeSec": 72906,
+            "notes": "#PLR #4182 lttax",
+            "dayType": "Workday",
+            "tags": [
+                "work"
+            ],
+            "mood": 5,
+            "isBreak": false,
+            "is_correct_record": true
+        },
+        {
+            "id": 1778175262016,
+            "date": "2026-05-07",
+            "startTime": "2026-05-07T14:53:39.321Z",
+            "endTime": "2026-05-07T17:34:22.016Z",
+            "duration": "02:40:42",
+            "durationSec": 9642,
+            "notes": "Break session",
+            "dayType": "Workday",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+        {
+            "id": 1778160974610,
+            "date": "2026-05-07",
+            "startTime": "2026-05-07T08:54:26.097Z",
+            "endTime": "2026-05-07T13:36:14.610Z",
+            "duration": "04:41:48",
+            "durationSec": 16908,
+            "notes": "Break session",
+            "dayType": "Workday",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+        {
+            "id": 1778143709466,
+            "date": "2026-05-06",
+            "startTime": "2026-05-06T19:55:53.074Z",
+            "endTime": "2026-05-07T08:48:29.466Z",
+            "duration": "12:52:36",
+            "durationSec": 46356,
+            "notes": "Break session",
+            "dayType": "Workday",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+        {
+            "id": 1778090331558,
+            "date": "2026-05-05",
+            "startTime": "2026-05-05T19:01:10.823Z",
+            "endTime": "2026-05-06T17:58:15.655Z",
+            "duration": "03:33:58",
+            "durationSec": 12838,
+            "accumulatedPauseTimeSec": 69786,
+            "notes": "#4182 lttax account data misconfig",
+            "dayType": "Workday",
+            "tags": [
+                "work"
+            ],
+            "mood": 5,
+            "isBreak": false,
+            "is_correct_record": true
+        },
+        {
+            "id": 1778086848070,
+            "date": "2026-05-06",
+            "startTime": "2026-05-06T15:53:09.663Z",
+            "endTime": "2026-05-06T17:00:48.060Z",
+            "duration": "01:07:38",
+            "durationSec": 4058,
+            "notes": "Break session",
+            "dayType": "Workday",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+        {
+            "id": 1778080482528,
+            "date": "2026-05-06",
+            "startTime": "2026-05-06T09:54:40.504Z",
+            "endTime": "2026-05-06T15:14:42.528Z",
+            "duration": "05:20:02",
+            "durationSec": 19202,
+            "notes": "Break session",
+            "dayType": "Workday",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+        {
+            "id": 1778060528263,
+            "date": "2026-05-06",
+            "startTime": "2026-05-06T06:24:04.981Z",
+            "endTime": "2026-05-06T09:42:08.263Z",
+            "duration": "03:18:03",
+            "durationSec": 11883,
+            "notes": "Break session",
+            "dayType": "Workday",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+        {
+            "id": 1778045624278,
+            "date": "2026-05-05",
+            "startTime": "2026-05-05T19:56:20.512Z",
+            "endTime": "2026-05-06T05:33:44.278Z",
+            "duration": "09:37:23",
+            "durationSec": 34643,
+            "notes": "Break session",
+            "dayType": "Workday",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+        {
+            "id": 1777982373309,
+            "date": "2026-05-05",
+            "startTime": "2026-05-05T11:30:14.146Z",
+            "endTime": "2026-05-05T11:59:27.962Z",
+            "duration": "00:29:13",
+            "durationSec": 1753,
+            "accumulatedPauseTimeSec": 0,
+            "notes": "#meet",
+            "dayType": "Workday",
+            "tags": [
+                "work"
+            ],
+            "mood": 5,
+            "isBreak": false,
+            "is_correct_record": true
+        },
+        {
+            "id": 1777980612303,
+            "date": "2026-05-05",
+            "startTime": "2026-05-05T07:40:12.850Z",
+            "endTime": "2026-05-05T11:28:35.211Z",
+            "duration": "00:42:27",
+            "durationSec": 2547,
+            "accumulatedPauseTimeSec": 11155,
+            "notes": "#4182 #plr lttax dates",
+            "dayType": "Workday",
+            "tags": [
+                "work"
+            ],
+            "mood": 5,
+            "isBreak": false,
+            "is_correct_record": true
+        },
+        {
+            "id": 1777980515192,
+            "date": "2026-05-05",
+            "startTime": "2026-05-05T08:22:39.437Z",
+            "endTime": "2026-05-05T11:28:35.188Z",
+            "duration": "03:05:55",
+            "durationSec": 11155,
+            "notes": "Break session",
+            "dayType": "Workday",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+
         {
             "id": 1775546932683,
             "date": "2026-04-06",
