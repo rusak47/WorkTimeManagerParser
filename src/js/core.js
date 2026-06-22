@@ -224,7 +224,7 @@ export function computeTimeData(data, options = {}) {
     Object.keys(timeData).forEach(date => {
         const restTime = {};
         Object.keys(timeData[date]).forEach(tag => {
-            if (timeData[date][tag] > 0) {
+            if (timeData[date][tag] > 0 && tag !== 'rest') {
                 restTime[tag] = 1;
             }
         });

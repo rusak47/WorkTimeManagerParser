@@ -198,6 +198,54 @@ export const sampleData = {
         },
 
         {
+            "id": 1777753879976,
+            "date": "2026-05-02",
+            "startTime": "2026-05-02T09:52:53.712Z",
+            "endTime": "2026-05-02T20:31:07.120Z",
+            "duration": "05:30:30",
+            "durationSec": 19830,
+            "accumulatedPauseTimeSec": 18463,
+            "notes": "#n8n #bonfire tests",
+            "dayType": "Weekend",
+            "tags": [
+                "work"
+            ],
+            "mood": 5,
+            "isBreak": false,
+            "is_correct_record": true
+        },
+        {
+            "id": 1777751449914,
+            "date": "2026-05-02",
+            "startTime": "2026-05-02T15:33:47.884Z",
+            "endTime": "2026-05-02T19:50:49.914Z",
+            "duration": "04:17:02",
+            "durationSec": 15422,
+            "notes": "Break session",
+            "dayType": "Weekend",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+        {
+            "id": 1777731213918,
+            "date": "2026-05-02",
+            "startTime": "2026-05-02T13:22:52.759Z",
+            "endTime": "2026-05-02T14:13:33.878Z",
+            "duration": "00:50:41",
+            "durationSec": 3041,
+            "notes": "Break session",
+            "dayType": "Weekend",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+
+        {
             "id": 1775546932683,
             "date": "2026-04-06",
             "startTime": "2026-04-06T19:12:00.000Z",
