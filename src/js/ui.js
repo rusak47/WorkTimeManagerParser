@@ -61,7 +61,7 @@ export function generateTableBody(tbody, timeData, sessionsByDate, uniqueTags, s
     sortedDates.forEach(date => {
         const tr = document.createElement('tr');
         const isWeekend = sessionsByDate[date].some(session => session.dayType === 'Weekend');
-        tr.className = isWeekend ? 'weekend-row hover:bg-amber-100' : 'hover:bg-gray-50';
+        tr.className = isWeekend ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-gray-50';
 
         addNotesCell(tr, date, sessionsByDate, specialTags, tagFilter);
 
