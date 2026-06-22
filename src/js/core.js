@@ -76,6 +76,7 @@ export function computeTimeData(data, options = {}) {
     const filteredSessions = filterSessions(sessions, { startDate, endDate, excludeBreaks });
 
     function computeMaxDays(durationHours) {
+        if (durationHours <= 3) return 1;
         return Math.floor(durationHours / 6) + 2;
     }
 

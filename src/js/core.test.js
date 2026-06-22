@@ -400,15 +400,12 @@ describe('computeTimeData', () => {
             ?.find(s => s.id === 1768808982081);
         const on15 = result.sessionsByDate['2026-01-15']
             ?.find(s => s.id === 1768808982081);
-        const on16 = result.sessionsByDate['2026-01-16']
-            ?.find(s => s.id === 1768808982081);
 
         expect(on14).toBeDefined();
-        expect(on15).toBeDefined();
-        expect(on16).toBeUndefined();
+        expect(on15).toBeUndefined();
     });
 
-    it('caps short sessions to 2 days in timeData for their tag', () => {
+    it('does not split sessions under 3h to any other day in timeData', () => {
         const result = computeTimeData(sampleData, {
             startDate: '2026-01-14',
             endDate: '2026-01-19',
@@ -418,8 +415,7 @@ describe('computeTimeData', () => {
         const daysWithCustom = Object.keys(result.timeData)
             .filter(d => (result.timeData[d]['#custom'] || 0) > 0);
 
-        expect(daysWithCustom).toHaveLength(2);
+        expect(daysWithCustom).toHaveLength(1);
         expect(daysWithCustom).toContain('2026-01-14');
-        expect(daysWithCustom).toContain('2026-01-15');
     });
 });
