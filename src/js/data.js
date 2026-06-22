@@ -250,6 +250,38 @@ export const sampleData = {
             "mood": 5,
             "isBreak": true
         },
+        {
+            "id": 1768808982081,
+            "date": "2026-01-14",
+            "startTime": "2026-01-14T09:34:13.814Z",
+            "endTime": "2026-01-19T07:49:35.220Z",
+            "duration": "00:05:28",
+            "durationSec": 328,
+            "accumulatedPauseTimeSec": 425393,
+            "notes": "",
+            "dayType": "Workday",
+            "tags": [
+                "work"
+            ],
+            "mood": 5,
+            "isBreak": false,
+            "is_correct_record": true
+        },
+        {
+            "id": 1768808975201,
+            "date": "2026-01-14",
+            "startTime": "2026-01-14T09:39:41.497Z",
+            "endTime": "2026-01-19T07:49:35.201Z",
+            "duration": "118:09:53",
+            "durationSec": 425393,
+            "notes": "Break session",
+            "dayType": "Workday",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
 
         {
             "id": 1750080769209,

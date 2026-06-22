@@ -75,15 +75,27 @@ export function computeTimeData(data, options = {}) {
 
     const filteredSessions = filterSessions(sessions, { startDate, endDate, excludeBreaks });
 
-    function clampToStartMonth(startDate, endDate) {
-        const endOfMonth = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth() + 1, 1));
-        return endDate < endOfMonth ? endDate : endOfMonth;
+    function computeMaxDays(durationHours) {
+        return Math.floor(durationHours / 6) + 2;
+    }
+
+    function computeEffectiveEnd(start, end, durationHours) {
+        const endOfMonth = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1));
+        let effective = end < endOfMonth ? end : endOfMonth;
+
+        const maxDays = computeMaxDays(durationHours);
+        const dayStart = new Date(start);
+        dayStart.setUTCHours(0, 0, 0, 0);
+        const cappedByDays = new Date(dayStart);
+        cappedByDays.setUTCDate(cappedByDays.getUTCDate() + maxDays);
+
+        return effective < cappedByDays ? effective : cappedByDays;
     }
 
     const sessionsByDate = {};
     filteredSessions.forEach(session => {
         const start = new Date(session.startTime);
-        const end = clampToStartMonth(start, new Date(session.endTime));
+        const end = computeEffectiveEnd(start, new Date(session.endTime), session.durationSec / 3600);
         const cursor = new Date(start);
         cursor.setUTCHours(0, 0, 0, 0);
         while (cursor < end) {
@@ -172,7 +184,7 @@ export function computeTimeData(data, options = {}) {
         }
 
         const start = new Date(session.startTime);
-        const end = clampToStartMonth(start, new Date(session.endTime));
+        const end = computeEffectiveEnd(start, new Date(session.endTime), totalDurationHours);
         const totalMs = end - start;
         const dayCursor = new Date(start);
         dayCursor.setUTCHours(0, 0, 0, 0);
