@@ -3,8 +3,9 @@ import { sampleData } from './demo.js';
 import { roundToHalf, copyAndEmailTimeTable2, datediff, durationToSeconds } from './utils.js';
 
 export const DEFAULT_EXCLUDED_TAGS = [
-    '#docs', '#custom', '#translations', '#codereview', '#work', '#support', '#bug', '#auth', '#review',
-    '#rest'
+    '#docs', '#custom', '#translations', '#codereview', '#work', '#support', '#maintenance', '#bug', '#auth', '#review',
+    '#rest', '#security', '#interactivity', '#vop', '#gw', '#payment', '#api', '#centrolinkvop', '#centrolink', '#soap',
+    '#n8n', '#meet', '#spotbugs', '#lttax'
 ];
 
 const REST_TIME_MIN = 60;//1h
@@ -162,8 +163,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         selectedTags.push(tag);
                     }
                 });
-
-                const hashtags_custom = session.notes.match(/#[a-zA-Z]+/) || [];
+                
+                const hashtags_custom = session.notes.match(/#[a-zA-Z]+[a-zA-Z0-9]{0,}/) || []; //#[a-zA-Z]+
                 hashtags_custom.forEach(tag => {
                     console.debug(`!!! custom hash tag: ${tag}`);
                     if (DEFAULT_EXCLUDED_TAGS.includes(tag.toLowerCase())) {
@@ -240,10 +241,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     //TODO known bug: when editing session durationSec is not updated with accumulatedPauseTimeSec
                     // in that case session.duration is the same as session.durationSec, but should be subtracted, i.e.
                     // duration = session.durationSec - session.accumulatedPauseTimeSec
-                    console.debug(`   real Duration(calculated): ${duration_real} !==  ${accumBreak + durationHours_session}`);
+                    console.debug(`   real totalDuration(calculated): ${duration_real} !==  ${accumBreak + durationHours_session}`);
+                    console.debug(`   real Duration(calculated): ${duration_real} ===  ${durationHours_session}`);
                     console.error(`   !!! Incorrect record: ${session.id} - ${session.notes}`);
                     console.debug(`   > Adjusting duration... ${session.durationSec} === ${durationToSeconds(session.duration)}`);
-                    if(!session.isBreak){
+                    if(!session.isBreak /*&& (duration_real !== durationHours_session)*/){
                         if(Math.abs(durationToSeconds(session.duration) - session.durationSec) < 60) {
                             durationHours -= accumBreak
                         }
@@ -280,7 +282,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         foundHashtag = true;
                     }
 
-                    const customHashtags = session.notes.match(/#[a-zA-Z]+/) || [];
+                    const customHashtags = session.notes.match(/#[a-zA-Z]+[a-zA-Z0-9]{0,}/) || [];
                     if (!foundHashtag && customHashtags.length > 0) {
                         console.debug(`\t > Checking for "${customHashtags[0]}" in ${session.notes}`);
                         // Use first custom hashtag if available
@@ -311,7 +313,7 @@ document.addEventListener('DOMContentLoaded', function() {
             //count tags and equally spread Rest_time_min accross them
             //{
                 Object.keys(timeData[date]).forEach(tag => { 
-                    if(!timeData[date] || !(timeData[date][tag] > 0)) { return; }
+                    if(!timeData[date] || timeData[date][tag] <= 0) { return; }
                     console.debug(`\t > timedata ${tag}: ${timeData[date][tag]}h`);
                     restTime[tag] = 1;
                     console.debug(`\t > resttimedata ${tag}: ${restTime[tag]} marked<<<<`);
