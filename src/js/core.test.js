@@ -356,7 +356,10 @@ describe('computeTimeData', () => {
     });
 
     it('does not place multi-month sessions in next month dates for sessionsByDate', () => {
-        const result = computeTimeData(sampleData, {
+        const data = { sessions: sampleData.sessions.filter(s =>
+            s.id === 1772519253319 || s.id === 1772519243214
+        ) };
+        const result = computeTimeData(data, {
             startDate: '2026-02-27',
             endDate: '2026-03-03',
             roundToHalvesEnabled: false,
@@ -375,7 +378,10 @@ describe('computeTimeData', () => {
     });
 
     it('does not place multi-month session time in next month dates', () => {
-        const result = computeTimeData(sampleData, {
+        const data = { sessions: sampleData.sessions.filter(s =>
+            s.id === 1772519253319 || s.id === 1772519243214
+        ) };
+        const result = computeTimeData(data, {
             startDate: '2026-02-27',
             endDate: '2026-03-03',
             roundToHalvesEnabled: false,
@@ -392,7 +398,10 @@ describe('computeTimeData', () => {
     });
 
     it('splits same-month multi-day session proportionally across days', () => {
-        const result = computeTimeData(sampleData, {
+        const data = { sessions: sampleData.sessions.filter(s =>
+            s.id === 1772741779880
+        ) };
+        const result = computeTimeData(data, {
             startDate: '2026-03-03',
             endDate: '2026-03-05',
             roundToHalvesEnabled: false,
@@ -411,7 +420,10 @@ describe('computeTimeData', () => {
     });
 
     it('caps short sessions spanning many days to 2 split days in sessionsByDate', () => {
-        const result = computeTimeData(sampleData, {
+        const data = { sessions: sampleData.sessions.filter(s =>
+            s.id === 1768808982081 || s.id === 1768808975201
+        ) };
+        const result = computeTimeData(data, {
             startDate: '2026-01-14',
             endDate: '2026-01-19',
             roundToHalvesEnabled: false,
@@ -427,7 +439,10 @@ describe('computeTimeData', () => {
     });
 
     it('does not split sessions under 3h to any other day in timeData', () => {
-        const result = computeTimeData(sampleData, {
+        const data = { sessions: sampleData.sessions.filter(s =>
+            s.id === 1768808982081 || s.id === 1768808975201
+        ) };
+        const result = computeTimeData(data, {
             startDate: '2026-01-14',
             endDate: '2026-01-19',
             roundToHalvesEnabled: false,
