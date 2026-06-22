@@ -324,4 +324,34 @@ describe('computeTimeData', () => {
         expect(total).toBeGreaterThan(0);
         expect(tags.length).toBeGreaterThanOrEqual(4);
     });
+
+    it('places multi-day sessions in sessionsByDate for all calendar days spanned', () => {
+        const result = computeTimeData(sampleData, {
+            startDate: '2026-02-11',
+            endDate: '2026-02-12',
+            roundToHalvesEnabled: false,
+        });
+
+        expect(result.sessionsByDate['2026-02-11']).toBeDefined();
+        expect(result.sessionsByDate['2026-02-12']).toBeDefined();
+
+        const multiDay = result.sessionsByDate['2026-02-11']
+            .find(s => s.id === 1770888349742);
+        expect(multiDay).toBeDefined();
+
+        const alsoOn12 = result.sessionsByDate['2026-02-12']
+            .find(s => s.id === 1770888349742);
+        expect(alsoOn12).toBeDefined();
+    });
+
+    it('includes multi-day span dates in timeData', () => {
+        const result = computeTimeData(sampleData, {
+            startDate: '2026-02-11',
+            endDate: '2026-02-12',
+            roundToHalvesEnabled: false,
+        });
+
+        expect(result.timeData['2026-02-11']).toBeDefined();
+        expect(result.timeData['2026-02-12']).toBeDefined();
+    });
 });

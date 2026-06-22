@@ -77,10 +77,18 @@ export function computeTimeData(data, options = {}) {
 
     const sessionsByDate = {};
     filteredSessions.forEach(session => {
-        if (!sessionsByDate[session.date]) {
-            sessionsByDate[session.date] = [];
+        const start = new Date(session.startTime);
+        const end = new Date(session.endTime);
+        const cursor = new Date(start);
+        cursor.setUTCHours(0, 0, 0, 0);
+        while (cursor < end) {
+            const dateStr = cursor.toISOString().split('T')[0];
+            if (!sessionsByDate[dateStr]) {
+                sessionsByDate[dateStr] = [];
+            }
+            sessionsByDate[dateStr].push(session);
+            cursor.setUTCDate(cursor.getUTCDate() + 1);
         }
-        sessionsByDate[session.date].push(session);
     });
 
     const { allTags, allSupportTags } = extractTags(filteredSessions, specialTags);
@@ -91,71 +99,101 @@ export function computeTimeData(data, options = {}) {
         : [...allTagsArray].sort();
 
     const timeData = {};
-    Object.keys(sessionsByDate).forEach(date => {
-        timeData[date] = {};
-        uniqueTags.forEach(tag => {
-            timeData[date][tag] = 0;
-        });
 
-        sessionsByDate[date].forEach(session => {
-            const accumBreak = session.accumulatedPauseTimeSec ? session.accumulatedPauseTimeSec / 3600 : 0;
-            const durationHours_session = session.durationSec / 3600;
-            const is_correct_record = checkIsCorrectRecord(session);
+    function dateEntry(dateStr) {
+        if (!timeData[dateStr]) {
+            timeData[dateStr] = {};
+            uniqueTags.forEach(tag => { timeData[dateStr][tag] = 0; });
+        }
+        return timeData[dateStr];
+    }
 
-            let durationHours = durationHours_session;
-            if (!is_correct_record) {
-                if (!session.isBreak) {
-                    if (Math.abs(durationToSeconds(session.duration) - session.durationSec) < 60) {
-                        if (accumBreak <= durationHours_session) {
-                            durationHours -= accumBreak;
-                        }
+    function allocateTime(entry, session, durationHours) {
+        let foundSpecialTag = false;
+        let foundHashtag = false;
+
+        if (specialTags.length > 0 && session.notes) {
+            for (const specialTag of specialTags) {
+                if (session.notes.toLowerCase().includes(specialTag)) {
+                    foundSpecialTag = `${specialTag} support`;
+                    break;
+                }
+            }
+        }
+
+        if (foundSpecialTag) {
+            entry[foundSpecialTag] += durationHours;
+        } else if (session.notes) {
+            const hashtags = session.notes.match(/#\d+/g) || [];
+            if (hashtags.length > 0) {
+                entry[hashtags[0].toLowerCase()] += durationHours;
+                foundHashtag = true;
+            }
+
+            const customHashtags = session.notes.match(/#[a-zA-Z]+[a-zA-Z0-9]{0,}/) || [];
+            if (!foundHashtag && customHashtags.length > 0) {
+                entry[customHashtags[0].toLowerCase()] += durationHours;
+                foundHashtag = true;
+            }
+        }
+
+        if (!foundHashtag && session.tags && Array.isArray(session.tags) && session.tags.length > 0) {
+            session.tags.forEach(tag => {
+                if (uniqueTags.includes(tag)) {
+                    if (tag === "work") {
+                        entry["#custom"] += durationHours;
+                    } else {
+                        entry[tag] += durationHours;
+                    }
+                }
+            });
+        }
+    }
+
+    filteredSessions.forEach(session => {
+        const accumBreak = session.accumulatedPauseTimeSec ? session.accumulatedPauseTimeSec / 3600 : 0;
+        const durationHours_session = session.durationSec / 3600;
+        const is_correct_record = checkIsCorrectRecord(session);
+
+        let totalDurationHours = durationHours_session;
+        if (!is_correct_record) {
+            if (!session.isBreak) {
+                if (Math.abs(durationToSeconds(session.duration) - session.durationSec) < 60) {
+                    if (accumBreak <= durationHours_session) {
+                        totalDurationHours -= accumBreak;
                     }
                 }
             }
+        }
 
-            durationHours = roundToHalvesEnabled ? roundToHalf(durationHours) : durationHours;
+        const start = new Date(session.startTime);
+        const end = new Date(session.endTime);
+        const totalMs = end - start;
+        const dayCursor = new Date(start);
+        dayCursor.setUTCHours(0, 0, 0, 0);
 
-            let foundSpecialTag = false;
-            let foundHashtag = false;
+        while (dayCursor < end) {
+            const dayEnd = new Date(dayCursor);
+            dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
 
-            if (specialTags.length > 0 && session.notes) {
-                for (const specialTag of specialTags) {
-                    if (session.notes.toLowerCase().includes(specialTag)) {
-                        foundSpecialTag = `${specialTag} support`;
-                        break;
-                    }
-                }
+            const overlapStart = start > dayCursor ? start : dayCursor;
+            const overlapEnd = end < dayEnd ? end : dayEnd;
+            const dayMs = overlapEnd - overlapStart;
+
+            if (dayMs > 0) {
+                const dateStr = dayCursor.toISOString().split('T')[0];
+                const proportion = dayMs / totalMs;
+                let dayDuration = totalDurationHours * proportion;
+                dayDuration = roundToHalvesEnabled ? roundToHalf(dayDuration) : dayDuration;
+
+                allocateTime(dateEntry(dateStr), session, dayDuration);
             }
 
-            if (foundSpecialTag) {
-                timeData[date][foundSpecialTag] += durationHours;
-            } else if (session.notes) {
-                const hashtags = session.notes.match(/#\d+/g) || [];
-                if (hashtags.length > 0) {
-                    timeData[date][hashtags[0].toLowerCase()] += durationHours;
-                    foundHashtag = true;
-                }
+            dayCursor.setUTCDate(dayCursor.getUTCDate() + 1);
+        }
+    });
 
-                const customHashtags = session.notes.match(/#[a-zA-Z]+[a-zA-Z0-9]{0,}/) || [];
-                if (!foundHashtag && customHashtags.length > 0) {
-                    timeData[date][customHashtags[0].toLowerCase()] += durationHours;
-                    foundHashtag = true;
-                }
-            }
-
-            if (!foundHashtag && session.tags && Array.isArray(session.tags) && session.tags.length > 0) {
-                session.tags.forEach(tag => {
-                    if (uniqueTags.includes(tag)) {
-                        if (tag === "work") {
-                            timeData[date]["#custom"] += durationHours;
-                        } else {
-                            timeData[date][tag] += durationHours;
-                        }
-                    }
-                });
-            }
-        });
-
+    Object.keys(timeData).forEach(date => {
         const restTime = {};
         Object.keys(timeData[date]).forEach(tag => {
             if (timeData[date][tag] > 0) {
