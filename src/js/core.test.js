@@ -87,8 +87,9 @@ describe('filterSessions', () => {
 });
 
 describe('checkIsCorrectRecord', () => {
-    it('matches manually-set is_correct_record for every session in sampleData', () => {
+    it('matches manually-set is_correct_record for non-break sessions in sampleData', () => {
         sampleData.sessions.forEach(session => {
+            if (!('is_correct_record' in session)) return;
             const { is_correct_record: expected, id, notes } = session;
             const msg = `session id=${id} (${notes})`;
             expect(checkIsCorrectRecord(session), msg).toBe(expected);

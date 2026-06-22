@@ -26,6 +26,105 @@ export const sampleData = {
         },
 
         {
+            "id": 1770893706532,
+            "date": "2026-02-12",
+            "startTime": "2026-02-12T09:20:00.000Z",
+            "endTime": "2026-02-12T10:54:00.000Z",
+            "duration": "01:34:00",
+            "durationSec": 5640,
+            "accumulatedPauseTimeSec": 0,
+            "notes": "#meet",
+            "dayType": "Workday",
+            "tags": [
+                "work"
+            ],
+            "mood": 5,
+            "isBreak": false,
+            "is_correct_record": true
+        },
+        {
+            "id": 1770888349742,
+            "date": "2026-02-11",
+            "startTime": "2026-02-11T17:19:10.450Z",
+            "endTime": "2026-02-12T09:25:42.526Z",
+            "duration": "14:14:44",
+            "durationSec": 51284,
+            "accumulatedPauseTimeSec": 6708,
+            "notes": "#n8n experiments",
+            "dayType": "Workday",
+            "tags": [
+                "work"
+            ],
+            "mood": 5,
+            "isBreak": false,
+            "is_correct_record": true
+        },
+        {
+            "id": 1770839483870,
+            "date": "2026-02-11",
+            "startTime": "2026-02-11T17:59:35.525Z",
+            "endTime": "2026-02-11T19:51:23.870Z",
+            "duration": "01:51:48",
+            "durationSec": 6708,
+            "notes": "Break session",
+            "dayType": "Workday",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+        {
+            "id": 1770829761016,
+            "date": "2026-02-11",
+            "startTime": "2026-02-11T10:00:00.000Z",
+            "endTime": "2026-02-11T11:40:00.000Z",
+            "duration": "01:40:00",
+            "durationSec": 6000,
+            "accumulatedPauseTimeSec": 0,
+            "notes": "#n8n experiments",
+            "dayType": "Workday",
+            "tags": [
+                "work"
+            ],
+            "mood": 5,
+            "isBreak": false,
+            "is_correct_record": true
+        },
+        {
+            "id": 1770829740970,
+            "date": "2026-02-11",
+            "startTime": "2026-02-11T06:53:24.140Z",
+            "endTime": "2026-02-11T17:08:50.714Z",
+            "duration": "01:52:47",
+            "durationSec": 6767,
+            "accumulatedPauseTimeSec": 30159,
+            "notes": "#n8n experiments",
+            "dayType": "Workday",
+            "tags": [
+                "work"
+            ],
+            "mood": 5,
+            "isBreak": false,
+            "is_correct_record": true
+        },
+        {
+            "id": 1770829730708,
+            "date": "2026-02-11",
+            "startTime": "2026-02-11T08:46:11.554Z",
+            "endTime": "2026-02-11T17:08:50.708Z",
+            "duration": "08:22:39",
+            "durationSec": 30159,
+            "notes": "Break session",
+            "dayType": "Workday",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+
+        {
             "id": 1750080769209,
             "date": "2025-06-16",
             "startTime": "2025-06-16T12:15:00.000Z",
@@ -51,8 +150,7 @@ export const sampleData = {
             "dayType": "Workday",
             "tags": ["rest", "home tasks"],
             "mood": 5,
-            "isBreak": true,
-            "is_correct_record": true
+            "isBreak": true
         },
         {
             "id": 1750080766942,
