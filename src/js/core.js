@@ -86,7 +86,7 @@ export function computeTimeData(data, options = {}) {
     const { allTags, allSupportTags } = extractTags(filteredSessions, specialTags);
     const allTagsArray = Array.from(allTags).concat(Array.from(allSupportTags));
 
-    const uniqueTags = selectedTags && selectedTags.length > 0
+    let uniqueTags = selectedTags && selectedTags.length > 0
         ? [...selectedTags].sort()
         : [...allTagsArray].sort();
 
@@ -199,6 +199,8 @@ export function computeTimeData(data, options = {}) {
 
     const uniqueDates = Object.keys(timeData).length;
     const avgDailyHours = uniqueDates > 0 ? totalHours / uniqueDates : 0;
+
+    uniqueTags = uniqueTags.filter(tag => tagTotals[tag] > 0);
 
     let topTag = '-';
     let maxHours = 0;

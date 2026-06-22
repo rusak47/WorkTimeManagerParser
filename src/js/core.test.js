@@ -134,8 +134,8 @@ describe('computeTimeData', () => {
 
         expect(result).not.toBeNull();
         expect(result.filteredSessions).toHaveLength(7);
-        expect(result.uniqueTags).toContain('work');
         expect(result.uniqueTags).toContain('meeting');
+        expect(result.uniqueTags).not.toContain('work');
         expect(result.totalHours).toBeGreaterThan(0);
         expect(result.avgDailyHours).toBeGreaterThan(0);
     });
