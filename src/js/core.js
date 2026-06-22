@@ -75,10 +75,15 @@ export function computeTimeData(data, options = {}) {
 
     const filteredSessions = filterSessions(sessions, { startDate, endDate, excludeBreaks });
 
+    function clampToStartMonth(startDate, endDate) {
+        const endOfMonth = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth() + 1, 1));
+        return endDate < endOfMonth ? endDate : endOfMonth;
+    }
+
     const sessionsByDate = {};
     filteredSessions.forEach(session => {
         const start = new Date(session.startTime);
-        const end = new Date(session.endTime);
+        const end = clampToStartMonth(start, new Date(session.endTime));
         const cursor = new Date(start);
         cursor.setUTCHours(0, 0, 0, 0);
         while (cursor < end) {
@@ -167,7 +172,7 @@ export function computeTimeData(data, options = {}) {
         }
 
         const start = new Date(session.startTime);
-        const end = new Date(session.endTime);
+        const end = clampToStartMonth(start, new Date(session.endTime));
         const totalMs = end - start;
         const dayCursor = new Date(start);
         dayCursor.setUTCHours(0, 0, 0, 0);

@@ -26,6 +26,133 @@ export const sampleData = {
         },
 
         {
+            "id": 1772519253319,
+            "date": "2026-02-27",
+            "startTime": "2026-02-27T07:57:00.466Z",
+            "endTime": "2026-03-03T06:27:23.225Z",
+            "duration": "01:56:07",
+            "durationSec": 6967,
+            "accumulatedPauseTimeSec": 333255,
+            "notes": "#ondato review",
+            "dayType": "Workday",
+            "tags": [
+                "work"
+            ],
+            "mood": 5,
+            "isBreak": false,
+            "is_correct_record": true
+        },
+        {
+            "id": 1772519243214,
+            "date": "2026-02-27",
+            "startTime": "2026-02-27T13:16:01.932Z",
+            "endTime": "2026-03-03T06:27:23.214Z",
+            "duration": "89:11:21",
+            "durationSec": 321081,
+            "notes": "Break session",
+            "dayType": "Workday",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+        {
+            "id": 1772194526942,
+            "date": "2026-02-27",
+            "startTime": "2026-02-27T08:52:32.196Z",
+            "endTime": "2026-02-27T12:15:26.937Z",
+            "duration": "03:22:54",
+            "durationSec": 12174,
+            "notes": "Break session",
+            "dayType": "Workday",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+        {
+            "id": 1772179018027,
+            "date": "2026-02-26",
+            "startTime": "2026-02-26T20:43:38.515Z",
+            "endTime": "2026-02-27T07:55:58.426Z",
+            "duration": "00:55:32",
+            "durationSec": 3332,
+            "accumulatedPauseTimeSec": 37007,
+            "notes": "#4170 review #OPTIKG ondato review",
+            "dayType": "Workday",
+            "tags": [
+                "work"
+            ],
+            "mood": 5,
+            "isBreak": false,
+            "is_correct_record": true
+        },
+        {
+            "id": 1772176698396,
+            "date": "2026-02-26",
+            "startTime": "2026-02-26T21:01:31.326Z",
+            "endTime": "2026-02-27T07:18:18.383Z",
+            "duration": "10:16:47",
+            "durationSec": 37007,
+            "notes": "Break session",
+            "dayType": "Workday",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+        {
+            "id": 1772120951860,
+            "date": "2026-02-26",
+            "startTime": "2026-02-26T09:55:56.575Z",
+            "endTime": "2026-02-26T15:48:58.548Z",
+            "duration": "01:28:40",
+            "durationSec": 5320,
+            "accumulatedPauseTimeSec": 15861,
+            "notes": "#4174 iban view",
+            "dayType": "Workday",
+            "tags": [
+                "work"
+            ],
+            "mood": 5
+        },
+        {
+            "id": 1772115900806,
+            "date": "2026-02-26",
+            "startTime": "2026-02-26T10:00:38.830Z",
+            "endTime": "2026-02-26T14:25:00.806Z",
+            "duration": "04:24:21",
+            "durationSec": 15861,
+            "notes": "Break session",
+            "dayType": "Workday",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+        {
+            "id": 1772099742811,
+            "date": "2026-02-26",
+            "startTime": "2026-02-26T08:00:00.000Z",
+            "endTime": "2026-02-26T09:55:00.000Z",
+            "duration": "01:55:00",
+            "durationSec": 6900,
+            "accumulatedPauseTimeSec": 0,
+            "notes": "#OPTIKG meet",
+            "dayType": "Workday",
+            "tags": [
+                "work"
+            ],
+            "mood": 5,
+            "isBreak": false,
+            "is_correct_record": true
+        },
+
+        {
             "id": 1770893706532,
             "date": "2026-02-12",
             "startTime": "2026-02-12T09:20:00.000Z",

@@ -354,4 +354,38 @@ describe('computeTimeData', () => {
         expect(result.timeData['2026-02-11']).toBeDefined();
         expect(result.timeData['2026-02-12']).toBeDefined();
     });
+
+    it('does not place multi-month sessions in next month dates for sessionsByDate', () => {
+        const result = computeTimeData(sampleData, {
+            startDate: '2026-02-27',
+            endDate: '2026-03-03',
+            roundToHalvesEnabled: false,
+        });
+
+        const multiMonth = result.sessionsByDate['2026-02-27']
+            ?.find(s => s.id === 1772519253319);
+        expect(multiMonth).toBeDefined();
+
+        expect(result.sessionsByDate['2026-02-28'])
+            .toBeDefined();
+
+        expect(result.sessionsByDate['2026-03-01']).toBeUndefined();
+        expect(result.sessionsByDate['2026-03-02']).toBeUndefined();
+        expect(result.sessionsByDate['2026-03-03']).toBeUndefined();
+    });
+
+    it('does not place multi-month sessions in next month dates for timeData', () => {
+        const result = computeTimeData(sampleData, {
+            startDate: '2026-02-27',
+            endDate: '2026-03-03',
+            roundToHalvesEnabled: false,
+        });
+
+        expect(result.timeData['2026-02-27']).toBeDefined();
+        expect(result.timeData['2026-02-28']).toBeDefined();
+
+        expect(result.timeData['2026-03-01']).toBeUndefined();
+        expect(result.timeData['2026-03-02']).toBeUndefined();
+        expect(result.timeData['2026-03-03']).toBeUndefined();
+    });
 });
