@@ -24,6 +24,100 @@ export const sampleData = {
             "isBreak": false,
             "is_correct_record": false
         },
+        {
+            "id": 1772741779880,
+            "date": "2026-03-03",
+            "startTime": "2026-03-03T15:00:15.498Z",
+            "endTime": "2026-03-05T20:15:35.128Z",
+            "duration": "06:46:27",
+            "durationSec": 24387,
+            "accumulatedPauseTimeSec": 167332,
+            "notes": "#BONFIRE phase1/2",
+            "dayType": "Workday",
+            "tags": [
+                "work"
+            ],
+            "mood": 5,
+            "isBreak": false,
+            "is_correct_record": true
+        },
+        {
+            "id": 1772736017891,
+            "date": "2026-03-05",
+            "startTime": "2026-03-05T11:15:00.826Z",
+            "endTime": "2026-03-05T18:40:17.891Z",
+            "duration": "07:25:17",
+            "durationSec": 26717,
+            "notes": "Break session",
+            "dayType": "Workday",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+        {
+            "id": 1772706845920,
+            "date": "2026-03-05",
+            "startTime": "2026-03-05T08:21:06.628Z",
+            "endTime": "2026-03-05T10:34:05.920Z",
+            "duration": "02:12:59",
+            "durationSec": 7979,
+            "notes": "Break session",
+            "dayType": "Workday",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+        {
+            "id": 1772693489493,
+            "date": "2026-03-04",
+            "startTime": "2026-03-04T11:11:43.155Z",
+            "endTime": "2026-03-05T06:51:29.493Z",
+            "duration": "19:39:46",
+            "durationSec": 70786,
+            "notes": "Break session",
+            "dayType": "Workday",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+        {
+            "id": 1772621633678,
+            "date": "2026-03-03",
+            "startTime": "2026-03-03T17:43:03.226Z",
+            "endTime": "2026-03-04T10:53:53.678Z",
+            "duration": "17:10:50",
+            "durationSec": 61850,
+            "notes": "Break session",
+            "dayType": "Workday",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+        {
+            "id": 1772524320233,
+            "date": "2026-03-03",
+            "startTime": "2026-03-03T06:29:25.468Z",
+            "endTime": "2026-03-03T07:51:54.182Z",
+            "duration": "01:22:28",
+            "durationSec": 4948,
+            "accumulatedPauseTimeSec": 0,
+            "notes": "#4174",
+            "dayType": "Workday",
+            "tags": [
+                "work"
+            ],
+            "mood": 5,
+            "isBreak": false,
+            "is_correct_record": true
+        },
 
         {
             "id": 1772519253319,
