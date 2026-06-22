@@ -362,19 +362,19 @@ describe('computeTimeData', () => {
             roundToHalvesEnabled: false,
         });
 
-        const multiMonth = result.sessionsByDate['2026-02-27']
+        const onFeb27 = result.sessionsByDate['2026-02-27']
             ?.find(s => s.id === 1772519253319);
-        expect(multiMonth).toBeDefined();
+        expect(onFeb27).toBeDefined();
 
-        expect(result.sessionsByDate['2026-02-28'])
-            .toBeDefined();
+        const onMar = [1, 2, 3].some(d =>
+            result.sessionsByDate[`2026-03-0${d}`]
+                ?.some(s => s.id === 1772519253319)
+        );
 
-        expect(result.sessionsByDate['2026-03-01']).toBeUndefined();
-        expect(result.sessionsByDate['2026-03-02']).toBeUndefined();
-        expect(result.sessionsByDate['2026-03-03']).toBeUndefined();
+        expect(onMar).toBe(false);
     });
 
-    it('does not place multi-month sessions in next month dates for timeData', () => {
+    it('does not place multi-month session time in next month dates', () => {
         const result = computeTimeData(sampleData, {
             startDate: '2026-02-27',
             endDate: '2026-03-03',
@@ -384,9 +384,30 @@ describe('computeTimeData', () => {
         expect(result.timeData['2026-02-27']).toBeDefined();
         expect(result.timeData['2026-02-28']).toBeDefined();
 
-        expect(result.timeData['2026-03-01']).toBeUndefined();
-        expect(result.timeData['2026-03-02']).toBeUndefined();
-        expect(result.timeData['2026-03-03']).toBeUndefined();
+        const ondatoMar = [1, 2, 3].some(d =>
+            (result.timeData[`2026-03-0${d}`]?.['#ondato'] || 0) > 0
+        );
+
+        expect(ondatoMar).toBe(false);
+    });
+
+    it('splits same-month multi-day session proportionally across days', () => {
+        const result = computeTimeData(sampleData, {
+            startDate: '2026-03-03',
+            endDate: '2026-03-05',
+            roundToHalvesEnabled: false,
+        });
+
+        expect(result.sessionsByDate['2026-03-03']
+            ?.some(s => s.id === 1772741779880)).toBe(true);
+        expect(result.sessionsByDate['2026-03-04']
+            ?.some(s => s.id === 1772741779880)).toBe(true);
+        expect(result.sessionsByDate['2026-03-05']
+            ?.some(s => s.id === 1772741779880)).toBe(true);
+
+        expect(result.timeData['2026-03-03']?.['#bonfire'] || 0).toBeGreaterThan(0);
+        expect(result.timeData['2026-03-04']?.['#bonfire'] || 0).toBeGreaterThan(0);
+        expect(result.timeData['2026-03-05']?.['#bonfire'] || 0).toBeGreaterThan(0);
     });
 
     it('caps short sessions spanning many days to 2 split days in sessionsByDate', () => {
