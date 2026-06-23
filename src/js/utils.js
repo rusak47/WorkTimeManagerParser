@@ -86,40 +86,6 @@ export function roundToHalf(num) {
     return Math.floor(num) + adjustment;
 }
 
-export function copyAndEmailTimeTable() {
-    const timeTable = document.getElementById('timeTable');
-    if (!timeTable) {
-        alert('Time table not found.');
-        return;
-    }
-
-    // Step 1: Copy the table to the clipboard
-    const tempDiv = document.createElement('div');
-    tempDiv.appendChild(timeTable.cloneNode(true));
-    document.body.appendChild(tempDiv);
-
-    const range = document.createRange();
-    range.selectNode(tempDiv);
-    window.getSelection().removeAllRanges();
-    window.getSelection().addRange(range);
-
-    try {
-        document.execCommand('copy');
-        alert('Time table copied to clipboard!');
-    } catch (err) {
-        console.error('Failed to copy time table:', err);
-        alert('Failed to copy time table.');
-    }
-
-    window.getSelection().removeAllRanges();
-    document.body.removeChild(tempDiv);
-
-    // Step 2: Email the table
-    const tableHTML = timeTable.outerHTML;
-    const emailBody = encodeURIComponent(tableHTML);
-    const mailtoLink = `mailto:?subject=Time Table&body=${emailBody}`;
-    window.location.href = mailtoLink;
-}
 
 
 export async function copyAndEmailTimeTable2() {
@@ -129,69 +95,42 @@ export async function copyAndEmailTimeTable2() {
         return;
     }
 
-    // Step 1: Fetch external styles (e.g., style.css)
-    let externalStyles = '';
-    try {
-        const response = await fetch('style.css'); // Adjust the path if necessary
-        if (response.ok) {
-            externalStyles = await response.text();
-        } else {
-            console.warn('Failed to fetch external styles:', response.statusText);
+    // Collect all style rules from the page (includes Tailwind CDN generated styles)
+    const styleText = Array.from(document.styleSheets)
+        .map(sheet => {
+            try {
+                return Array.from(sheet.cssRules).map(r => r.cssText).join('\n');
+            } catch {
+                return '';
+            }
+        })
+        .filter(Boolean)
+        .join('\n');
+
+    // Clone table and inline computed styles on every element so pasting preserves them
+    const clone = timeTable.cloneNode(true);
+    const elements = clone.querySelectorAll('*');
+    for (const el of elements) {
+        const computed = getComputedStyle(el);
+        for (let i = 0; i < computed.length; i++) {
+            const prop = computed[i];
+            el.style[prop] = computed.getPropertyValue(prop);
         }
-    } catch (err) {
-        console.error('Error fetching external styles:', err);
     }
 
-    // Step 2: Get the table's HTML with styles
-    const tableHTML = `
-        <html>
-            <head>
-                <style>
-                    ${externalStyles}
-                    ${Array.from(document.styleSheets)
-                        .map(styleSheet => {
-                            try {
-                                return Array.from(styleSheet.cssRules)
-                                    .map(rule => rule.cssText)
-                                    .join('\n');
-                            } catch (e) {
-                                console.warn('Could not access stylesheet:', styleSheet.href);
-                                return '';
-                            }
-                        })
-                        .join('\n')}
-                </style>
-            </head>
-            <body>
-                ${timeTable.outerHTML}
-            </body>
-        </html>
-    `;
-
-    // Step 3: Copy the table with styles to the clipboard
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = tableHTML;
-    document.body.appendChild(tempDiv);
-
-    const range = document.createRange();
-    range.selectNode(tempDiv);
-    window.getSelection().removeAllRanges();
-    window.getSelection().addRange(range);
+    const html = `<!DOCTYPE html><html><head><style>${styleText}</style></head><body>${clone.outerHTML}</body></html>`;
 
     try {
-        document.execCommand('copy');
+        await navigator.clipboard.write([
+            new ClipboardItem({
+                'text/html': new Blob([html], { type: 'text/html' }),
+                'text/plain': new Blob([timeTable.innerText], { type: 'text/plain' }),
+            }),
+        ]);
         alert('Time table copied to clipboard with styles!');
     } catch (err) {
-        console.error('Failed to copy time table:', err);
+        console.error('Failed to copy with Clipboard API:', err);
         alert('Failed to copy time table.');
     }
-
-    window.getSelection().removeAllRanges();
-    document.body.removeChild(tempDiv);
-
-    // Step 4: Email the table
-    const emailBody = encodeURIComponent(tableHTML);
-    const mailtoLink = `mailto:?subject=Time Table&body=${emailBody}`;
-    window.location.href = mailtoLink;
 }
 

@@ -29,6 +29,7 @@ Key modules:
 - `excludeBreaks` uses separate session lists: `displaySessions` (for table/notes) and `filteredSessions` (for time computation, always includes breaks). Empty dates after stripping `rest` are removed from both.
 - Weekend detection in `generateTableBody` uses `date.getDay()`, not session `dayType`, so it works regardless of `excludeBreaks`.
 - Sticky cells (Notes, Total, Date) have explicit `bg-white` that overrides `tr` background — each must be updated individually for row-level styling like weekend highlighting.
+- **Copy table**: `copyAndEmailTimeTable2()` copies the table using the Clipboard API (`navigator.clipboard.write`). It collects all page styles (including Tailwind CDN generated rules), inlines computed styles on every element in a clone, and writes `text/html` + `text/plain` to the clipboard — preserving formatting when pasting into rich editors or email.
 
 ## Settings (all in DOM, no persistence)
 
