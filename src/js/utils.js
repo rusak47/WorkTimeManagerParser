@@ -69,22 +69,22 @@ export function durationToSeconds(duration) {
     // - 0.5 stays as is
     // - everything else rounds clasically
 export function roundToHalf(num) {
-        const decimal_part = num % 1;
-        if (decimal_part === num && decimal_part > 0.57) { return num; }
+    const decimal_part = num % 1;
+    if (decimal_part === num && decimal_part > 0.57) { return num; }
 
-        //console.debug(`(roundToHalf) handling: ${num}`);
-        //console.debug(`\tdecimal part: ${decimal_part}`);
-        //console.debug(`\tfloor; ${Math.floor(num)}`);
-        //console.debug(`\tround: ${Math.round(decimal_part,2)}`);
+    // Truncate to 2 decimal places; if the remainder is negligible (.00xxx),
+    // use the truncated decimal for the rounding decision
+    const truncated = Math.floor(num * 100) / 100;
+    const checkDecimal = num - truncated < 0.01 ? truncated % 1 : decimal_part;
 
-        let adjustment;
-        if (decimal_part > 0 && decimal_part < 0.57) {
-            adjustment = 0.5;
-        } else {
-            adjustment = Math.round(decimal_part, 1);
-        }
-        return Math.floor(num) + adjustment;
+    let adjustment;
+    if (checkDecimal > 0 && checkDecimal < 0.57) {
+        adjustment = 0.5;
+    } else {
+        adjustment = Math.round(checkDecimal);
     }
+    return Math.floor(num) + adjustment;
+}
 
 export function copyAndEmailTimeTable() {
     const timeTable = document.getElementById('timeTable');

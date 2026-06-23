@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { computeTimeData, filterSessions, extractTags, checkIsCorrectRecord } from './core.js';
-import { roundToHalf } from './utils.js';
 import { sampleData } from './data.js';
 import { roundToHalf, datediff, durationToSeconds } from './utils.js';
 
