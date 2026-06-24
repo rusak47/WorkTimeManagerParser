@@ -53,21 +53,41 @@ export function generateTagLegend(tagLegend, uniqueTags) {
  * @param {Set} specialTags - A set of special tags.
  * @param {Object} tagFilter - The tag filter object.
  */
-export function generateTableBody(tbody, timeData, sessionsByDate, uniqueTags, specialTags, tagFilter) {
+const COUNTRY_FLAGS = { LV: '🇱🇻' };
+
+export function generateTableBody(tbody, timeData, sessionsByDate, uniqueTags, specialTags, tagFilter, calendarLookup, locale) {
     tbody.innerHTML = '';
     const sortedDates = Object.keys(timeData).sort((a, b) => new Date(a) - new Date(b));
 
-        
     sortedDates.forEach(date => {
         const tr = document.createElement('tr');
+        const entry = calendarLookup?.[date];
+        const isHoliday = entry && ['holiday', 'observed_holiday', 'swapped_day_off'].includes(entry.type);
         const dateObj = new Date(date);
         const dayOfWeek = dateObj.getDay();
         const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-        const rowBg = isWeekend ? 'bg-red-50' : 'bg-white';
-        const hoverBg = isWeekend ? 'hover:bg-red-100' : 'hover:bg-gray-50';
+        const isMemoriam = entry?.is_memoriam === true;
+
+        let rowBg, hoverBg, stickyBg, dateTextColor;
+        if (isHoliday) {
+            rowBg = 'bg-white';
+            hoverBg = 'hover:bg-gray-50';
+            stickyBg = 'bg-white';
+            dateTextColor = 'text-blue-600';
+        } else if (isWeekend) {
+            rowBg = 'bg-red-50';
+            hoverBg = 'hover:bg-red-100';
+            stickyBg = 'bg-red-50';
+            dateTextColor = 'text-gray-900';
+        } else {
+            rowBg = 'bg-white';
+            hoverBg = 'hover:bg-gray-50';
+            stickyBg = 'bg-white';
+            dateTextColor = 'text-gray-900';
+        }
         tr.className = `${rowBg} ${hoverBg}`;
 
-        addNotesCell(tr, date, sessionsByDate, specialTags, tagFilter, isWeekend);
+        addNotesCell(tr, date, sessionsByDate, specialTags, tagFilter, stickyBg);
 
         // Calculate day total
         let dayTotal = 0;
@@ -77,14 +97,21 @@ export function generateTableBody(tbody, timeData, sessionsByDate, uniqueTags, s
 
         // Total cell
         const totalTd = document.createElement('td');
-        totalTd.className = `px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 sticky left-0 ${isWeekend ? 'bg-red-50' : 'bg-white'}`;
+        totalTd.className = `px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 sticky left-0 ${stickyBg}`;
         totalTd.textContent = `${dayTotal.toFixed(1)}h`;
         tr.appendChild(totalTd);
 
         // Date cell
         const dateTd = document.createElement('td');
-        dateTd.className = `px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 sticky left-0 ${isWeekend ? 'bg-red-50' : 'bg-white'}`;
-        dateTd.textContent = dateObj.toLocaleDateString('en-US', { 
+        dateTd.className = `px-6 py-4 whitespace-nowrap text-sm font-medium ${dateTextColor} sticky left-0 ${stickyBg}`;
+
+        const titleParts = [];
+        if (entry?.name) titleParts.push(entry.name);
+        if (entry?.note) titleParts.push(entry.note);
+        if (titleParts.length > 0) dateTd.title = titleParts.join(' · ');
+
+        const flag = isMemoriam && !isHoliday ? (COUNTRY_FLAGS[locale] || '') + ' ' : '';
+        dateTd.textContent = flag + dateObj.toLocaleDateString('en-US', { 
             weekday: 'short', 
             month: 'short', 
             day: 'numeric' 
@@ -221,9 +248,9 @@ export function syncSpecialTags(tagFilter) {
  * @param {Set} specialTags - A set of special tags.
  * @param {Object} tagFilter - The tag filter object.
  */
-export function addNotesCell(tr, date, sessionsByDate, specialTags, tagFilter, isWeekend) {
+export function addNotesCell(tr, date, sessionsByDate, specialTags, tagFilter, stickyBg) {
     const notesTd = document.createElement('td');
-    notesTd.className = `px-6 py-4 text-sm text-gray-500 sticky left-0 ${isWeekend ? 'bg-red-50' : 'bg-white'} max-w-xs break-words whitespace-normal`;
+    notesTd.className = `px-6 py-4 text-sm text-gray-500 sticky left-0 ${stickyBg} max-w-xs break-words whitespace-normal`;
 
     // Collect notes that match selected tags (or all if no tags selected)
     const dayNotes = [];

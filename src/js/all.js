@@ -2,6 +2,10 @@ import { syncSpecialTags, generateTableHeader, generateTableBody, generateTagLeg
 import { roundToHalf, copyAndEmailTimeTable2, datediff, durationToSeconds } from './utils.js';
 import { computeTimeData, extractTags, filterSessions } from './core.js';
 import { DEFAULT_EXCLUDED_TAGS, sampleData } from './data.js';
+import holidaysRaw from '../holidays.json' with { type: 'json' };
+
+const HOLIDAY_LOCALE = Object.keys(holidaysRaw)[0];
+const CALENDAR_LOOKUP = holidaysRaw[HOLIDAY_LOCALE];
 
 export { DEFAULT_EXCLUDED_TAGS };
 
@@ -14,6 +18,8 @@ export function processData(data, options = {}) {
         roundToHalves: roundToHalvesOverride,
         selectedTags: selectedTagsOverride,
         debugMode: debugModeOverride,
+        holidayMultiplier: holidayMultiplierOverride,
+        weekendMultiplier: weekendMultiplierOverride,
     } = options;
 
     const startDate = startDateOverride || document.getElementById('startDate').value;
@@ -23,6 +29,8 @@ export function processData(data, options = {}) {
     const specialTags = specialTagsInput.split(',').map(tag => tag.trim()).filter(tag => tag);
     const roundToHalvesEnabled = roundToHalvesOverride !== undefined ? roundToHalvesOverride : document.getElementById('roundToHalves').checked;
     const debugMode = debugModeOverride !== undefined ? debugModeOverride : document.getElementById('debugMode')?.checked || false;
+    const holidayMultiplier = holidayMultiplierOverride !== undefined ? holidayMultiplierOverride : parseFloat(document.getElementById('holidayMultiplier').value) || 1;
+    const weekendMultiplier = weekendMultiplierOverride !== undefined ? weekendMultiplierOverride : parseFloat(document.getElementById('weekendMultiplier').value) || 1;
 
     const tagFilter = document.getElementById('tagFilter')?.tomselect;
     const tableContainer = document.getElementById('tableContainer');
@@ -96,6 +104,9 @@ export function processData(data, options = {}) {
         selectedTags: effectiveSelectedTags,
         roundToHalvesEnabled,
         debugMode,
+        holidayMultiplier,
+        weekendMultiplier,
+        calendarLookup: CALENDAR_LOOKUP,
     });
 
     if (!result || Object.keys(result.timeData).length === 0) {
@@ -156,7 +167,7 @@ export function processData(data, options = {}) {
     avgDailyEl.textContent = `${displayAvgDaily.toFixed(1)} hours`;
 
     generateTableHeader(timeTable, new Set(), uniqueTags);
-    generateTableBody(timeTable.querySelector('tbody'), timeData, sessionsByDate, uniqueTags, specialTags, tagFilter || { items: [] });
+    generateTableBody(timeTable.querySelector('tbody'), timeData, sessionsByDate, uniqueTags, specialTags, tagFilter || { items: [] }, CALENDAR_LOOKUP, HOLIDAY_LOCALE);
     generateTagLegend(tagLegend, uniqueTags);
 
     tableContainer.classList.remove('hidden');

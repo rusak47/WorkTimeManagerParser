@@ -738,3 +738,148 @@ describe('computeTimeData', () => {
         expect(result).not.toBeNull();
     });
 });
+
+describe('holidayMultiplier', () => {
+    const calendarLookup = {
+        '2026-04-06': { type: 'holiday', name: 'Otrās Lieldienas' },
+    };
+
+    it('doubles non-rest hours on holiday dates when multiplier=2', () => {
+        const data = { sessions: sampleData.sessions.filter(s =>
+            s.id === 1775546932683 || s.id === 1750080766942 || s.id === 1750080766941
+        ) };
+        const normal = computeTimeData(data, {
+            startDate: '2026-04-06',
+            endDate: '2026-04-06',
+            holidayMultiplier: 1,
+            calendarLookup,
+        });
+        const doubled = computeTimeData(data, {
+            startDate: '2026-04-06',
+            endDate: '2026-04-06',
+            holidayMultiplier: 2,
+            calendarLookup,
+        });
+
+        const d = '2026-04-06';
+        Object.keys(normal.timeData[d]).forEach(tag => {
+            if (tag === 'rest') {
+                expect(doubled.timeData[d][tag]).toBe(normal.timeData[d][tag]);
+            } else {
+                expect(doubled.timeData[d][tag]).toBeCloseTo(normal.timeData[d][tag] * 2, 2);
+            }
+        });
+    });
+
+    it('leaves rest hours unchanged on holiday', () => {
+        const data = { sessions: sampleData.sessions.filter(s =>
+            s.id === 1775546932683
+        ) };
+        const result = computeTimeData(data, {
+            startDate: '2026-04-06',
+            endDate: '2026-04-06',
+            holidayMultiplier: 5,
+            calendarLookup,
+        });
+
+        expect(result.timeData['2026-04-06']?.rest || 0).toBe(0);
+    });
+
+    it('does not multiply non-holiday workdays', () => {
+        const data = { sessions: sampleData.sessions.filter(s =>
+            s.id === 1772524320233
+        ) };
+        const normal = computeTimeData(data, {
+            startDate: '2026-03-03',
+            endDate: '2026-03-03',
+            holidayMultiplier: 1,
+            calendarLookup,
+        });
+        const multiplied = computeTimeData(data, {
+            startDate: '2026-03-03',
+            endDate: '2026-03-03',
+            holidayMultiplier: 3,
+            calendarLookup,
+        });
+
+        Object.keys(normal.timeData['2026-03-03']).forEach(tag => {
+            expect(multiplied.timeData['2026-03-03'][tag]).toBe(normal.timeData['2026-03-03'][tag]);
+        });
+    });
+
+    it('applies holiday but not weekend multiplier when holiday falls on weekend', () => {
+        const data = { sessions: sampleData.sessions.filter(s =>
+            s.id === 1775546932683
+        ) };
+        const holiday2 = computeTimeData(data, {
+            startDate: '2026-04-06',
+            endDate: '2026-04-06',
+            holidayMultiplier: 2,
+            weekendMultiplier: 5,
+            calendarLookup,
+        });
+        const holidayOnly = computeTimeData(data, {
+            startDate: '2026-04-06',
+            endDate: '2026-04-06',
+            holidayMultiplier: 2,
+            weekendMultiplier: 1,
+            calendarLookup,
+        });
+
+        expect(holiday2.timeData['2026-04-06']['#n8n']).toBeCloseTo(
+            holidayOnly.timeData['2026-04-06']['#n8n'], 2
+        );
+    });
+});
+
+describe('weekendMultiplier', () => {
+    it('multiplies non-rest hours on weekend by getDay()', () => {
+        const data = { sessions: sampleData.sessions.filter(s =>
+            s.id === 1777753879976
+        ) };
+        const normal = computeTimeData(data, {
+            startDate: '2026-05-02',
+            endDate: '2026-05-02',
+            weekendMultiplier: 1,
+        });
+        const doubled = computeTimeData(data, {
+            startDate: '2026-05-02',
+            endDate: '2026-05-02',
+            weekendMultiplier: 2,
+        });
+
+        const d = '2026-05-02';
+        Object.keys(normal.timeData[d]).forEach(tag => {
+            if (tag === 'rest') {
+                expect(doubled.timeData[d][tag]).toBe(normal.timeData[d][tag]);
+            } else {
+                expect(doubled.timeData[d][tag]).toBeCloseTo(normal.timeData[d][tag] * 2, 2);
+            }
+        });
+    });
+
+    it('does not multiply swapped_workday dates with weekendMultiplier', () => {
+        const calendarLookup = {
+            '2026-01-17': { type: 'swapped_workday', swap_source: '2026-01-02' },
+        };
+        const data = { sessions: sampleData.sessions.filter(s =>
+            s.id === 1768808982081
+        ) };
+        const normal = computeTimeData(data, {
+            startDate: '2026-01-17',
+            endDate: '2026-01-17',
+            weekendMultiplier: 1,
+            calendarLookup,
+        });
+        const multiplied = computeTimeData(data, {
+            startDate: '2026-01-17',
+            endDate: '2026-01-17',
+            weekendMultiplier: 3,
+            calendarLookup,
+        });
+
+        expect(multiplied.timeData['2026-01-17']?.['#custom'] || 0).toBeCloseTo(
+            normal.timeData['2026-01-17']?.['#custom'] || 0, 2
+        );
+    });
+});

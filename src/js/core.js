@@ -66,6 +66,9 @@ export function computeTimeData(data, options = {}) {
         roundToHalvesEnabled = false,
         restTimeMin = REST_TIME_MIN,
         debugMode = false,
+        holidayMultiplier = 1,
+        weekendMultiplier = 1,
+        calendarLookup = null,
     } = options;
 
     if (!data || !data.sessions || !Array.isArray(data.sessions)) {
@@ -259,6 +262,37 @@ export function computeTimeData(data, options = {}) {
                 timeData[date][tag] = roundToHalf(timeData[date][tag]);
             }
         });
+    });
+
+    if (holidayMultiplier !== 1 || weekendMultiplier !== 1) {
+        Object.keys(timeData).forEach(date => {
+            const entry = calendarLookup?.[date];
+            const dt = new Date(date + 'T00:00:00Z');
+            const isWeekend = dt.getUTCDay() === 0 || dt.getUTCDay() === 6;
+            const isHoliday = entry && ['holiday', 'observed_holiday', 'swapped_day_off'].includes(entry.type);
+
+            Object.keys(timeData[date]).forEach(tag => {
+                if (tag === 'rest') return;
+                if (isHoliday && holidayMultiplier !== 1) {
+                    timeData[date][tag] *= holidayMultiplier;
+                } else if (isWeekend && entry?.type !== 'swapped_workday' && weekendMultiplier !== 1) {
+                    timeData[date][tag] *= weekendMultiplier;
+                }
+            });
+        });
+
+        Object.keys(timeData).forEach(date => {
+            Object.keys(timeData[date]).forEach(tag => {
+                if (timeData[date][tag] === 0 || isNaN(timeData[date][tag])) {
+                    delete timeData[date][tag];
+                } else {
+                    timeData[date][tag] = roundToHalf(timeData[date][tag]);
+                }
+            });
+        });
+    }
+
+    Object.keys(timeData).forEach(date => {
         if (debugMode) {
             const final = Object.fromEntries(
                 Object.entries(timeData[date]).filter(([_, v]) => v > 0)
