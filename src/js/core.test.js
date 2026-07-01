@@ -648,8 +648,8 @@ describe('computeTimeData', () => {
         console.debug('tagTotals round:');
         Object.entries(resultRound.tagTotals).sort().forEach(([t, v]) => console.debug(`  ${t}: ${v}`));
 
-        expect(d5_nr['#4182']).toBe(2);
-        expect(d5_nr['#meet']).toBeCloseTo(0.9869, 4);
+        expect(d5_nr['#4182']).toBe(2.5);
+        expect(d5_nr['#meet']).toBe(0.5);
         expect(d5_nr['rest']).toBe(7.5);
 
         expect(d6_nr['#4182']).toBe(4.5);
@@ -659,13 +659,13 @@ describe('computeTimeData', () => {
         expect(d7_nr['rest']).toBe(16.5);
 
         const tt_nr = resultNoRound.tagTotals;
-        expect(tt_nr['#4182']).toBeCloseTo(11, 4);
-        expect(tt_nr['#meet']).toBeCloseTo(0.9869, 4);
+        expect(tt_nr['#4182']).toBeCloseTo(11.5, 4);
+        expect(tt_nr['#meet']).toBe(0.5);
         expect(tt_nr['rest']).toBeCloseTo(43.5, 4);
 
         // --- Mode: per-session rounding enabled ---
 
-        expect(d5_r['#4182']).toBe(2);
+        expect(d5_r['#4182']).toBe(2.5);
         expect(d5_r['rest']).toBe(8);
 
         expect(d6_r['#4182']).toBe(5);
@@ -675,7 +675,7 @@ describe('computeTimeData', () => {
         expect(d7_r['rest']).toBe(17);
 
         const tt_r = resultRound.tagTotals;
-        expect(tt_r['#4182']).toBeCloseTo(11.5, 4);
+        expect(tt_r['#4182']).toBeCloseTo(12.0, 4);
         expect(tt_r['rest']).toBeCloseTo(45.5, 4);
 
         console.debug('\n=== UI display (toFixed(1)) ===');
@@ -694,7 +694,7 @@ describe('computeTimeData', () => {
             });
         });
 
-        expect(d5_nr['#meet'].toFixed(1)).toBe('1.0');
+        expect(d5_nr['#meet'].toFixed(1)).toBe('0.5');
         expect(d6_nr['#4182'].toFixed(1)).toBe('4.5');
         expect(d6_r['#4182'].toFixed(1)).toBe('5.0');
         expect(d6_r['rest'].toFixed(1)).toBe('20.5');
@@ -881,5 +881,26 @@ describe('weekendMultiplier', () => {
         expect(multiplied.timeData['2026-01-17']?.['#custom'] || 0).toBeCloseTo(
             normal.timeData['2026-01-17']?.['#custom'] || 0, 2
         );
+    });
+});
+
+describe('restExcludedTags', () => {
+    it('excludes #meet from rest spread on 2026-06-02, routes rest to #n8n', () => {
+        const ids = [1780403380114, 1780395825419, 1780395276475, 1780390062433, 1780386216552];
+        const data = {
+            sessions: sampleData.sessions.filter(s => ids.includes(s.id)),
+        };
+
+        const result = computeTimeData(data, {
+            startDate: '2026-06-02',
+            endDate: '2026-06-02',
+            debugMode: true,
+        });
+
+        const td = result.timeData['2026-06-02'];
+
+        expect(td['#meet']).toBe(2.5);
+        expect(td['#n8n']).toBe(3.5);
+        expect(td['rest']).toBe(3.5);
     });
 });

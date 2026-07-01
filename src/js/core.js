@@ -2,6 +2,7 @@ import { roundToHalf, datediff, durationToSeconds } from './utils.js';
 import { DEFAULT_EXCLUDED_TAGS } from './data.js';
 
 const REST_TIME_MIN = 60;
+const REST_EXCLUDED_TAGS = ['#meet'];
 
 export function checkIsCorrectRecord(session) {
     const accumBreak = session.accumulatedPauseTimeSec ? session.accumulatedPauseTimeSec / 3600 : 0;
@@ -225,20 +226,25 @@ export function computeTimeData(data, options = {}) {
     });
 
     Object.keys(timeData).forEach(date => {
-        const restTime = {};
+        const restEligible = {};
+        const excludedNonRest = {};
         Object.keys(timeData[date]).forEach(tag => {
             if (timeData[date][tag] > 0 && tag !== 'rest') {
-                restTime[tag] = 1;
+                if (REST_EXCLUDED_TAGS.includes(tag)) {
+                    excludedNonRest[tag] = 1;
+                } else {
+                    restEligible[tag] = 1;
+                }
             }
         });
 
-        const restCount = Object.keys(restTime).length;
+        const restCount = Object.keys(restEligible).length;
         const preRest = Object.fromEntries(
             Object.entries(timeData[date]).filter(([_, v]) => v > 0)
         );
         if (restCount > 0) {
             const restSpread = restTimeMin / restCount / 60;
-            Object.keys(restTime).forEach(tag => {
+            Object.keys(restEligible).forEach(tag => {
                 timeData[date][tag] += restSpread;
             });
             const postRest = Object.fromEntries(
@@ -246,6 +252,15 @@ export function computeTimeData(data, options = {}) {
             );
             if (debugMode) {
                 console.debug(`[computeTimeData] ${date}: restCount=${restCount} spread=${restSpread.toFixed(4)}h  pre-rest=${JSON.stringify(preRest)}  post-rest=${JSON.stringify(postRest)}`);
+            }
+        } else if (Object.keys(excludedNonRest).length > 0) {
+            const restHrs = restTimeMin / 60;
+            if (timeData[date]['#custom'] === undefined) {
+                timeData[date]['#custom'] = 0;
+            }
+            timeData[date]['#custom'] += restHrs;
+            if (debugMode) {
+                console.debug(`[computeTimeData] ${date}: all-non-rest-excluded routed to #custom (+${restHrs.toFixed(4)}h)  pre-rest=${JSON.stringify(preRest)}`);
             }
         } else {
             if (debugMode) {

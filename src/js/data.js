@@ -9,6 +9,81 @@ export const sampleData = {
 
 
         {
+            "id": 1780403380114,
+            "date": "2026-06-02",
+            "startTime": "2026-06-02T10:23:46.818Z",
+            "endTime": "2026-06-02T12:29:25.929Z",
+            "duration": "02:05:39",
+            "durationSec": 7539,
+            "accumulatedPauseTimeSec": 0,
+            "notes": "#meet #bonfire",
+            "dayType": "Workday",
+            "tags": [
+                "work"
+            ],
+            "mood": 5
+        },
+        {
+            "id": 1780395825419,
+            "date": "2026-06-02",
+            "startTime": "2026-06-02T04:36:08.445Z",
+            "endTime": "2026-06-02T10:23:30.830Z",
+            "duration": "02:33:05",
+            "durationSec": 9185,
+            "accumulatedPauseTimeSec": 11657,
+            "notes": "#n8n #review #bonfire",
+            "dayType": "Workday",
+            "tags": [
+                "work"
+            ],
+            "mood": 5
+        },
+        {
+            "id": 1780395276475,
+            "date": "2026-06-02",
+            "startTime": "2026-06-02T09:38:36.622Z",
+            "endTime": "2026-06-02T10:14:36.475Z",
+            "duration": "00:35:59",
+            "durationSec": 2159,
+            "notes": "Break session",
+            "dayType": "Workday",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+        {
+            "id": 1780390062433,
+            "date": "2026-06-02",
+            "startTime": "2026-06-02T08:27:13.982Z",
+            "endTime": "2026-06-02T08:47:42.433Z",
+            "duration": "00:20:28",
+            "durationSec": 1228,
+            "notes": "Break session",
+            "dayType": "Workday",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+        {
+            "id": 1780386216552,
+            "date": "2026-06-02",
+            "startTime": "2026-06-02T05:25:45.656Z",
+            "endTime": "2026-06-02T07:43:36.552Z",
+            "duration": "02:17:50",
+            "durationSec": 8270,
+            "notes": "Break session",
+            "dayType": "Workday",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+        {
             "id": 1778183198451,
             "date": "2026-05-06",
             "startTime": "2026-05-06T19:26:03.836Z",
