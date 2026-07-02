@@ -248,6 +248,12 @@ export function syncSpecialTags(tagFilter) {
  * @param {Set} specialTags - A set of special tags.
  * @param {Object} tagFilter - The tag filter object.
  */
+function getNotesHashtags(notes) {
+    const numeric = notes.match(/#\d+/g) || [];
+    const word = notes.match(/#[a-zA-Z]+[a-zA-Z0-9]{0,}/g) || [];
+    return [...numeric, ...word].map(h => h.toLowerCase());
+}
+
 export function addNotesCell(tr, date, sessionsByDate, specialTags, tagFilter, stickyBg) {
     const notesTd = document.createElement('td');
     notesTd.className = `px-6 py-4 text-sm text-gray-500 sticky left-0 ${stickyBg} max-w-xs break-words whitespace-normal`;
@@ -258,6 +264,7 @@ export function addNotesCell(tr, date, sessionsByDate, specialTags, tagFilter, s
         if (session.notes) {
             const shouldInclude = tagFilter.items.length === 0 || 
                 (session.tags && session.tags.some(tag => tagFilter.items.includes(tag))) ||
+                (session.notes && getNotesHashtags(session.notes).some(ht => tagFilter.items.includes(ht))) ||
                 (specialTags.some(specialTag => 
                     session.notes.includes(specialTag) && 
                     tagFilter.items.includes(`${specialTag} support`)
