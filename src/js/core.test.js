@@ -903,4 +903,129 @@ describe('restExcludedTags', () => {
         expect(td['#n8n']).toBe(3.5);
         expect(td['rest']).toBe(3.5);
     });
+
+    it('traces June 4-6 calculation in detail (carry-overs, spread, final)', () => {
+        const ids = [
+            1780573610045, 1780580443511, 1780590811656, 1780596401313,
+            1780633089575, 1780651163925, 1780664295715, 1780664424000,
+            1780682629225, 1780719125558, 1780725392621, 1780772995190,
+            1780778338837,
+        ];
+        const data = {
+            sessions: sampleData.sessions.filter(s => ids.includes(s.id)),
+        };
+
+        console.debug('\n========== STEP 1: RAW SESSION DATA ==========');
+        console.debug('id            date       durH      multi?  tag     notes');
+        data.sessions.forEach(s => {
+            const start = new Date(s.startTime);
+            const end = new Date(s.endTime);
+            const multi = start.toISOString().split('T')[0] !== end.toISOString().split('T')[0];
+            const allocatedTag = s.isBreak ? 'rest' : '#n8n';
+            console.debug(`${s.id}  ${s.date}  ${(s.durationSec/3600).toFixed(4)}h  ${multi ? 'SPAN' : '     '}  ${allocatedTag}  "${s.notes}"`);
+        });
+
+        console.debug('\n========== STEP 2: PER-SESSION DAY SPLITS (carry-overs) ==========');
+        console.debug('The [computeTimeData] lines below show each session per day.');
+        console.debug('For SPAN sessions, prop < 1.0 means the remainder carries to the next day:');
+        console.debug('  carry-over = totalDurationHours × (1 - prop)');
+        console.debug('');
+
+        const result = computeTimeData(data, {
+            startDate: '2026-06-04',
+            endDate: '2026-06-06',
+            debugMode: true,
+        });
+
+        console.debug('\n========== STEP 3: PER-DAY PRE-SPREAD TOTALS ==========');
+        console.debug('Shown above in each "[computeTimeData] YYYY-MM-DD: pre-rest={...}" line.');
+        console.debug('These are raw accumulated hours per tag BEFORE rest spread.');
+
+        console.debug('\n========== STEP 4: REST SPREAD ==========');
+        console.debug('Shown above in each "[computeTimeData] ... spread=1.0000h  post-rest={...}" line.');
+        console.debug('Non-meet tags each get 1h / restCount. #meet is excluded.');
+
+        console.debug('\n========== STEP 5: FINAL (after roundToHalf) ==========');
+        ['2026-06-04','2026-06-05','2026-06-06'].forEach(date => {
+            const tags = result.timeData[date];
+            const entries = Object.entries(tags).filter(([_, v]) => v > 0);
+            const total = entries.reduce((a, [_, v]) => a + v, 0);
+            console.debug(`  ${date}:`);
+            entries.forEach(([t, v]) => {
+                console.debug(`    ${t}: tracked=${v.toFixed(4)}h -> UI=${v.toFixed(1)}h`);
+            });
+            console.debug(`    total: ${total.toFixed(1)}h`);
+        });
+
+        console.debug('\n========== STEP 6: GRAND TOTALS ==========');
+        Object.entries(result.tagTotals).sort().forEach(([t, v]) => {
+            if (v > 0) console.debug(`  ${t}: ${v.toFixed(4)}h`);
+        });
+
+        const d4 = result.timeData['2026-06-04'];
+        const d5 = result.timeData['2026-06-05'];
+        const d6 = result.timeData['2026-06-06'];
+
+        expect(d4['#n8n']).toBe(7.0);
+        expect(d4['rest']).toBe(11.0);
+
+        expect(d5['#n8n']).toBe(5.5);
+        expect(d5['rest']).toBe(19.0);
+
+        expect(d6['#n8n']).toBe(10.0);
+        expect(d6['rest']).toBe(9.5);
+    });
+});
+
+describe('computeTimeData with selectedTags', () => {
+    it('returns only selected tag columns when selectedTags is set', () => {
+        const result = computeTimeData(sampleData, {
+            startDate: '2026-06-26',
+            endDate: '2026-06-26',
+            excludeBreaks: false,
+            selectedTags: ['#4203'],
+        });
+        expect(result).not.toBeNull();
+        expect(result.uniqueTags).toEqual(['#4203']);
+        expect(Object.keys(result.timeData['2026-06-26'])).toEqual(['#4203']);
+        expect(result.timeData['2026-06-26']['#4203']).toBeCloseTo(4.0, 1);
+    });
+
+    it('returns all tag columns when selectedTags is empty', () => {
+        const result = computeTimeData(sampleData, {
+            startDate: '2026-06-26',
+            endDate: '2026-06-26',
+            excludeBreaks: false,
+            selectedTags: [],
+        });
+        expect(result).not.toBeNull();
+        expect(result.uniqueTags).toContain('#4203');
+        expect(result.uniqueTags).toContain('#opencode');
+        expect(result.timeData['2026-06-26']['#4203']).toBeDefined();
+        expect(result.timeData['2026-06-26']['#opencode']).toBeDefined();
+    });
+
+    it('allocates time to session tag when notes hashtag is outside selectedTags', () => {
+        const result = computeTimeData(sampleData, {
+            startDate: '2026-06-26',
+            endDate: '2026-06-26',
+            excludeBreaks: false,
+            selectedTags: ['study'],
+        });
+        expect(result).not.toBeNull();
+        expect(result.uniqueTags).toEqual(['study']);
+        expect(result.timeData['2026-06-26']['study']).toBeCloseTo(1.5, 1);
+    });
+
+    it('returns all tag columns when selectedTags is null', () => {
+        const result = computeTimeData(sampleData, {
+            startDate: '2026-06-26',
+            endDate: '2026-06-26',
+            excludeBreaks: false,
+            selectedTags: null,
+        });
+        expect(result).not.toBeNull();
+        expect(result.uniqueTags).toContain('#4203');
+        expect(result.uniqueTags).toContain('#opencode');
+    });
 });

@@ -9,6 +9,233 @@ export const sampleData = {
 
 
         {
+            "id": 1782504531201,
+            "notes": "#opencode timer",
+            "tags": [
+                "study",
+                "write"
+            ],
+            "mood": 5,
+            "date": "2026-06-26",
+            "startTime": "2026-06-26T19:48:00.000Z",
+            "endTime": "2026-06-26T20:08:00.000Z",
+            "duration": "00:20:00",
+            "durationSec": 1200,
+            "accumulatedPauseTimeSec": 0,
+            "dayType": "Workday",
+            "isBreak": false
+        },
+        {
+            "id": 1782489378834,
+            "notes": "#paylar #4203 #plais docs",
+            "tags": [
+                "work"
+            ],
+            "mood": 5,
+            "date": "2026-06-26",
+            "startTime": "2026-06-26T06:30:00.000Z",
+            "endTime": "2026-06-26T09:30:00.000Z",
+            "duration": "03:00:00",
+            "durationSec": 10800,
+            "dayType": "Workday",
+            "isBreak": false
+        },
+        {
+            "id": 1780778338837,
+            "date": "2026-06-06",
+            "startTime": "2026-06-06T08:13:47.589Z",
+            "endTime": "2026-06-06T20:38:48.170Z",
+            "duration": "07:24:40",
+            "durationSec": 26680,
+            "accumulatedPauseTimeSec": 18020,
+            "notes": "#n8n file upload",
+            "dayType": "Weekend",
+            "tags": [
+                "work"
+            ],
+            "mood": 5
+        },
+        {
+            "id": 1780772995190,
+            "date": "2026-06-06",
+            "startTime": "2026-06-06T14:09:34.977Z",
+            "endTime": "2026-06-06T19:09:55.190Z",
+            "duration": "05:00:20",
+            "durationSec": 18020,
+            "notes": "Break session",
+            "dayType": "Weekend",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+        {
+            "id": 1780725392621,
+            "date": "2026-06-05",
+            "startTime": "2026-06-05T13:00:25.823Z",
+            "endTime": "2026-06-06T05:55:55.565Z",
+            "duration": "03:29:41",
+            "durationSec": 12581,
+            "accumulatedPauseTimeSec": 48348,
+            "notes": "#n8n #bonfire #review add ubos documents (undocked)",
+            "dayType": "Workday",
+            "tags": [
+                "work"
+            ],
+            "mood": 5
+        },
+        {
+            "id": 1780719125558,
+            "date": "2026-06-05",
+            "startTime": "2026-06-05T19:22:36.729Z",
+            "endTime": "2026-06-06T04:12:05.552Z",
+            "duration": "08:49:28",
+            "durationSec": 31768,
+            "notes": "Break session",
+            "dayType": "Workday",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+        {
+            "id": 1780682629225,
+            "date": "2026-06-05",
+            "startTime": "2026-06-05T13:27:29.099Z",
+            "endTime": "2026-06-05T18:03:49.225Z",
+            "duration": "04:36:20",
+            "durationSec": 16580,
+            "notes": "Break session",
+            "dayType": "Workday",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+        {
+            "id": 1780664424000,
+            "date": "2026-06-04",
+            "startTime": "2026-06-04T18:06:44.976Z",
+            "endTime": "2026-06-05T13:00:02.988Z",
+            "duration": "03:16:30",
+            "durationSec": 11790,
+            "accumulatedPauseTimeSec": 56208,
+            "notes": "#n8n #bonfire #review add ubos documents (undocked)",
+            "dayType": "Workday",
+            "tags": [
+                "work"
+            ],
+            "mood": 5
+        },
+        {
+            "id": 1780664295715,
+            "date": "2026-06-05",
+            "startTime": "2026-06-05T09:58:40.252Z",
+            "endTime": "2026-06-05T12:58:15.715Z",
+            "duration": "02:59:35",
+            "durationSec": 10775,
+            "notes": "Break session",
+            "dayType": "Workday",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+        {
+            "id": 1780651163925,
+            "date": "2026-06-05",
+            "startTime": "2026-06-05T06:53:33.314Z",
+            "endTime": "2026-06-05T09:19:23.925Z",
+            "duration": "02:25:50",
+            "durationSec": 8750,
+            "notes": "Break session",
+            "dayType": "Workday",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+        {
+            "id": 1780633089575,
+            "date": "2026-06-04",
+            "startTime": "2026-06-04T18:06:45.888Z",
+            "endTime": "2026-06-05T04:18:09.575Z",
+            "duration": "10:11:23",
+            "durationSec": 36683,
+            "notes": "Break session",
+            "dayType": "Workday",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+        {
+            "id": 1780596401313,
+            "date": "2026-06-04",
+            "startTime": "2026-06-04T08:20:36.769Z",
+            "endTime": "2026-06-04T18:05:52.248Z",
+            "duration": "04:39:53",
+            "durationSec": 16793,
+            "accumulatedPauseTimeSec": 18322,
+            "notes": "#n8n #bonfire #review add manager document linked as stakeholder (undocked)",
+            "dayType": "Workday",
+            "tags": [
+                "work"
+            ],
+            "mood": 5
+        },
+        {
+            "id": 1780590811656,
+            "date": "2026-06-04",
+            "startTime": "2026-06-04T14:51:26.416Z",
+            "endTime": "2026-06-04T16:33:31.656Z",
+            "duration": "01:42:05",
+            "durationSec": 6125,
+            "notes": "Break session",
+            "dayType": "Workday",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+        {
+            "id": 1780580443511,
+            "date": "2026-06-04",
+            "startTime": "2026-06-04T12:24:04.121Z",
+            "endTime": "2026-06-04T13:40:43.511Z",
+            "duration": "01:16:39",
+            "durationSec": 4599,
+            "notes": "Break session",
+            "dayType": "Workday",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+        {
+            "id": 1780573610045,
+            "date": "2026-06-04",
+            "startTime": "2026-06-04T09:40:12.044Z",
+            "endTime": "2026-06-04T11:46:50.045Z",
+            "duration": "02:06:38",
+            "durationSec": 7598,
+            "notes": "Break session",
+            "dayType": "Workday",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "isBreak": true
+        },
+        {
             "id": 1780403380114,
             "date": "2026-06-02",
             "startTime": "2026-06-02T10:23:46.818Z",
