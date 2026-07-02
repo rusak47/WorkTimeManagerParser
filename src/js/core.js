@@ -154,14 +154,20 @@ export function computeTimeData(data, options = {}) {
         } else if (session.notes) {
             const hashtags = session.notes.match(/#\d+/g) || [];
             if (hashtags.length > 0) {
-                entry[hashtags[0].toLowerCase()] += durationHours;
-                foundHashtag = true;
+                const tag = hashtags[0].toLowerCase();
+                if (tag in entry) {
+                    entry[tag] += durationHours;
+                    foundHashtag = true;
+                }
             }
 
             const customHashtags = session.notes.match(/#[a-zA-Z]+[a-zA-Z0-9]{0,}/) || [];
             if (!foundHashtag && customHashtags.length > 0) {
-                entry[customHashtags[0].toLowerCase()] += durationHours;
-                foundHashtag = true;
+                const tag = customHashtags[0].toLowerCase();
+                if (tag in entry) {
+                    entry[tag] += durationHours;
+                    foundHashtag = true;
+                }
             }
         }
 
@@ -169,8 +175,10 @@ export function computeTimeData(data, options = {}) {
             session.tags.forEach(tag => {
                 if (uniqueTags.includes(tag)) {
                     if (tag === "work") {
-                        entry["#custom"] += durationHours;
-                    } else {
+                        if ("#custom" in entry) {
+                            entry["#custom"] += durationHours;
+                        }
+                    } else if (tag in entry) {
                         entry[tag] += durationHours;
                     }
                 }
