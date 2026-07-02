@@ -9,28 +9,19 @@ const CALENDAR_LOOKUP = holidaysRaw[HOLIDAY_LOCALE];
 
 export { DEFAULT_EXCLUDED_TAGS };
 
-export function processData(data, options = {}) {
-    const {
-        startDate: startDateOverride,
-        endDate: endDateOverride,
-        excludeBreaks: excludeBreaksOverride,
-        specialTags: specialTagsOverride,
-        roundToHalves: roundToHalvesOverride,
-        selectedTags: selectedTagsOverride,
-        debugMode: debugModeOverride,
-        holidayMultiplier: holidayMultiplierOverride,
-        weekendMultiplier: weekendMultiplierOverride,
-    } = options;
+let currentData = null;
+let isProcessingData = false;
 
-    const startDate = startDateOverride || document.getElementById('startDate').value;
-    const endDate = endDateOverride || document.getElementById('endDate').value;
-    const excludeBreaks = excludeBreaksOverride !== undefined ? excludeBreaksOverride : document.getElementById('excludeBreaks').checked;
-    const specialTagsInput = specialTagsOverride !== undefined ? specialTagsOverride : document.getElementById('specialTags').value;
+function recomputeAndRender(state) {
+    const startDate = state?.startDate ?? document.getElementById('startDate').value;
+    const endDate = state?.endDate ?? document.getElementById('endDate').value;
+    const excludeBreaks = state !== undefined ? state.excludeBreaks : document.getElementById('excludeBreaks').checked;
+    const specialTagsInput = state?.specialTagsInput ?? document.getElementById('specialTags').value;
     const specialTags = specialTagsInput.split(',').map(tag => tag.trim()).filter(tag => tag);
-    const roundToHalvesEnabled = roundToHalvesOverride !== undefined ? roundToHalvesOverride : document.getElementById('roundToHalves').checked;
-    const debugMode = debugModeOverride !== undefined ? debugModeOverride : document.getElementById('debugMode')?.checked || false;
-    const holidayMultiplier = holidayMultiplierOverride !== undefined ? holidayMultiplierOverride : parseFloat(document.getElementById('holidayMultiplier').value) || 1;
-    const weekendMultiplier = weekendMultiplierOverride !== undefined ? weekendMultiplierOverride : parseFloat(document.getElementById('weekendMultiplier').value) || 1;
+    const roundToHalvesEnabled = state !== undefined ? state.roundToHalvesEnabled : document.getElementById('roundToHalves').checked;
+    const debugMode = state !== undefined ? state.debugMode : document.getElementById('debugMode')?.checked || false;
+    const holidayMultiplier = state !== undefined ? state.holidayMultiplier : parseFloat(document.getElementById('holidayMultiplier').value) || 1;
+    const weekendMultiplier = state !== undefined ? state.weekendMultiplier : parseFloat(document.getElementById('weekendMultiplier').value) || 1;
 
     const tagFilter = document.getElementById('tagFilter')?.tomselect;
     const tableContainer = document.getElementById('tableContainer');
@@ -42,66 +33,20 @@ export function processData(data, options = {}) {
     const topTagEl = document.getElementById('topTag');
     const avgDailyEl = document.getElementById('avgDaily');
 
-    if (!data?.sessions || !Array.isArray(data.sessions)) {
-        alert('Invalid data format. Expected an object with a "sessions" array.');
-        return;
-    }
-
-    const periodSessions = filterSessions(data.sessions, { startDate, endDate, excludeBreaks });
-
-    if (tagFilter) {
-        const { allTags, allSupportTags } = extractTags(periodSessions, specialTags);
-        const allTagsArray = Array.from(allTags).concat(Array.from(allSupportTags));
-
-        tagFilter.clear();
-        tagFilter.clearOptions();
-        tagFilter.addOptions(allTagsArray.map(tag => {
-            if (allSupportTags.has(tag)) {
-                return { value: tag, text: `${tag.slice(1)} support` };
-            }
-            return { value: tag, text: tag };
-        }));
-
-        if (selectedTagsOverride) {
-            tagFilter.addItems(selectedTagsOverride);
-        } else {
-            const autoSelected = [];
-            periodSessions.forEach(session => {
-                if (session.notes) {
-                    specialTags.forEach(specialTag => {
-                        if (session.notes.toLowerCase().includes(specialTag.toLowerCase())) {
-                            if (session.tags?.[0] && !autoSelected.includes(session.tags[0])) {
-                                autoSelected.push(session.tags[0]);
-                            }
-                        }
-                    });
-                }
-            });
-            tagFilter.addItems(autoSelected);
-        }
-
-        if (specialTags.length > 0) {
-            specialTags.forEach(specialTag => {
-                const supportTag = `${specialTag} support`;
-                if (allTagsArray.includes(supportTag) && !tagFilter.items.includes(supportTag)) {
-                    tagFilter.addItem(supportTag);
-                }
-            });
+    const selectedTags = tagFilter?.items.length > 0 ? tagFilter.items : null;
+    if (document.getElementById('debugMode')?.checked) {
+        console.debug('[recomputeAndRender] tagFilter.items:', JSON.stringify(tagFilter?.items), 'selectedTags:', JSON.stringify(selectedTags));
+        if (tagFilter) {
+            console.debug('[recomputeAndRender] options:', tagFilter.options);
         }
     }
 
-    const effectiveSelectedTags = selectedTagsOverride || (tagFilter?.items.length > 0 ? tagFilter.items : null);
-
-    if (debugMode) {
-        console.debug('[processData] options:', { startDate, endDate, excludeBreaks, specialTags, selectedTags: effectiveSelectedTags, roundToHalvesEnabled });
-    }
-
-    const result = computeTimeData(data, {
+    const result = computeTimeData(currentData, {
         startDate,
         endDate,
         excludeBreaks,
         specialTags,
-        selectedTags: effectiveSelectedTags,
+        selectedTags,
         roundToHalvesEnabled,
         debugMode,
         holidayMultiplier,
@@ -110,11 +55,10 @@ export function processData(data, options = {}) {
     });
 
     if (!result || Object.keys(result.timeData).length === 0) {
-        alert('No sessions found in the selected date range.');
         return;
     }
 
-    const { uniqueTags, timeData, sessionsByDate } = result;
+    let { uniqueTags, timeData, sessionsByDate } = result;
 
     if (excludeBreaks) {
         const restIdx = uniqueTags.indexOf('rest');
@@ -134,7 +78,6 @@ export function processData(data, options = {}) {
     }
 
     if (Object.keys(timeData).length === 0) {
-        alert('No sessions found in the selected date range.');
         return;
     }
 
@@ -175,6 +118,100 @@ export function processData(data, options = {}) {
     legendContainer.classList.remove('hidden');
 }
 
+export function processData(data, options = {}) {
+    const {
+        startDate: startDateOverride,
+        endDate: endDateOverride,
+        excludeBreaks: excludeBreaksOverride,
+        specialTags: specialTagsOverride,
+        roundToHalves: roundToHalvesOverride,
+        selectedTags: selectedTagsOverride,
+        debugMode: debugModeOverride,
+        holidayMultiplier: holidayMultiplierOverride,
+        weekendMultiplier: weekendMultiplierOverride,
+    } = options;
+
+    if (!data?.sessions || !Array.isArray(data.sessions)) {
+        alert('Invalid data format. Expected an object with a "sessions" array.');
+        return;
+    }
+
+    currentData = data;
+    isProcessingData = true;
+
+    const startDate = startDateOverride || document.getElementById('startDate').value;
+    const endDate = endDateOverride || document.getElementById('endDate').value;
+    const excludeBreaks = excludeBreaksOverride !== undefined ? excludeBreaksOverride : document.getElementById('excludeBreaks').checked;
+    const specialTagsInput = specialTagsOverride !== undefined ? specialTagsOverride : document.getElementById('specialTags').value;
+    const specialTags = specialTagsInput.split(',').map(tag => tag.trim()).filter(tag => tag);
+    const roundToHalvesEnabled = roundToHalvesOverride !== undefined ? roundToHalvesOverride : document.getElementById('roundToHalves').checked;
+    const debugMode = debugModeOverride !== undefined ? debugModeOverride : document.getElementById('debugMode')?.checked || false;
+    const holidayMultiplier = holidayMultiplierOverride !== undefined ? holidayMultiplierOverride : parseFloat(document.getElementById('holidayMultiplier').value) || 1;
+    const weekendMultiplier = weekendMultiplierOverride !== undefined ? weekendMultiplierOverride : parseFloat(document.getElementById('weekendMultiplier').value) || 1;
+
+    const tagFilter = document.getElementById('tagFilter')?.tomselect;
+    const periodSessions = filterSessions(data.sessions, { startDate, endDate, excludeBreaks });
+
+    if (tagFilter) {
+        const { allTags, allSupportTags } = extractTags(periodSessions, specialTags);
+        const allTagsArray = Array.from(allTags).concat(Array.from(allSupportTags));
+
+        const previousItems = tagFilter.items.slice();
+
+        tagFilter.clear();
+        tagFilter.clearOptions();
+        tagFilter.addOptions(allTagsArray.map(tag => {
+            if (allSupportTags.has(tag)) {
+                return { value: tag, text: `${tag.slice(1)} support` };
+            }
+            return { value: tag, text: tag };
+        }));
+
+        if (selectedTagsOverride) {
+            tagFilter.addItems(selectedTagsOverride);
+        } else if (previousItems.length > 0) {
+            const preserved = previousItems.filter(item => allTagsArray.includes(item));
+            tagFilter.addItems(preserved);
+        } else {
+            const autoSelected = [];
+            periodSessions.forEach(session => {
+                if (session.notes) {
+                    specialTags.forEach(specialTag => {
+                        if (session.notes.toLowerCase().includes(specialTag.toLowerCase())) {
+                            if (session.tags?.[0] && !autoSelected.includes(session.tags[0])) {
+                                autoSelected.push(session.tags[0]);
+                            }
+                        }
+                    });
+                }
+            });
+            tagFilter.addItems(autoSelected);
+        }
+
+        if (specialTags.length > 0) {
+            specialTags.forEach(specialTag => {
+                const supportTag = `${specialTag} support`;
+                if (allTagsArray.includes(supportTag) && !tagFilter.items.includes(supportTag)) {
+                    tagFilter.addItem(supportTag);
+                }
+            });
+        }
+    }
+
+    isProcessingData = false;
+
+    recomputeAndRender({
+        startDate,
+        endDate,
+        excludeBreaks,
+        specialTagsInput,
+        roundToHalvesEnabled,
+        debugMode,
+        holidayMultiplier,
+        weekendMultiplier,
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     if (document.getElementById('debugMode')?.checked) {
         console.debug("loaded");
@@ -208,9 +245,11 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         onItemAdd: function(value) {
             syncSpecialTags(this);
+            if (!isProcessingData) recomputeAndRender();
         },
         onItemRemove: function(value) {
             syncSpecialTags(this);
+            if (!isProcessingData) recomputeAndRender();
         }
     });
 
