@@ -135,7 +135,8 @@ describe('computeTimeData', () => {
 
         expect(result).not.toBeNull();
         expect(result.filteredSessions).toHaveLength(7);
-        expect(result.uniqueTags).toContain('meeting');
+        // 'meeting' is stripped by normalization (session has accumulatedPauseTimeSec + >1 tags)
+        expect(result.uniqueTags).not.toContain('meeting');
         expect(result.uniqueTags).not.toContain('work');
         expect(result.totalHours).toBeGreaterThan(0);
         expect(result.avgDailyHours).toBeGreaterThan(0);
@@ -200,7 +201,7 @@ describe('computeTimeData', () => {
         });
     });
 
-    it('maps work tag to #custom', () => {
+    it('allocates via notes hashtag for normalized sessions', () => {
         const result = computeTimeData(sampleData, {
             startDate: '2025-06-16',
             endDate: '2025-06-18',
@@ -208,7 +209,7 @@ describe('computeTimeData', () => {
         });
 
         const jun16 = result.timeData['2025-06-16'];
-        expect(jun16['#custom']).toBeGreaterThan(0);
+        expect(jun16['#meeting']).toBeGreaterThan(0);
     });
 
     it('spreads rest time across active tags', () => {
@@ -1004,6 +1005,164 @@ describe('computeTimeData with selectedTags', () => {
         expect(result.timeData['2026-06-26']['#4203']).toBeDefined();
         expect(result.timeData['2026-06-26']['#opencode']).toBeDefined();
     });
+
+describe('multi-tag sessions without hashtag', () => {
+    it('splits duration across tags instead of double-counting', () => {
+        const sessions = [{
+            id: 999,
+            date: '2026-07-01',
+            startTime: '2026-07-01T10:00:00.000Z',
+            endTime: '2026-07-01T12:00:00.000Z',
+            duration: '02:00:00',
+            durationSec: 7200,
+            notes: 'no hashtag here',
+            dayType: 'Workday',
+            tags: ['work', 'projectA', 'projectB'],
+            isBreak: false,
+        }];
+        const result = computeTimeData(
+            { sessions },
+            { startDate: '2026-07-01', endDate: '2026-07-01' }
+        );
+        // 2h split across 3 tags → 0.667h each, +0.333h rest spread → 1.0h each
+        // Without fix: each tag gets 2h + 0.333h rest spread → 2.5h each → totalHours=7.5h
+        const workTags = result.uniqueTags.filter(t => t !== 'rest');
+        expect(workTags.length).toBe(3);
+        workTags.forEach(tag => {
+            expect(result.tagTotals[tag]).toBe(1.0);
+        });
+        // totalHours = 3 + rest spread total (rest was distributed, no explicit rest tag here)
+        expect(result.totalHours).toBe(3.0);
+    });
+});
+
+describe('normalize migrated-no-bucket sessions', () => {
+    it('collapses tags to first tag when accumulatedPauseTimeSec present and >1 tags', () => {
+        const sessions = [{
+            id: 2001,
+            date: '2026-07-01',
+            startTime: '2026-07-01T10:00:00.000Z',
+            endTime: '2026-07-01T12:00:00.000Z',
+            duration: '02:00:00',
+            durationSec: 7200,
+            notes: 'original note',
+            dayType: 'Workday',
+            tags: ['work', 'paylar', '4203', 'review'],
+            accumulatedPauseTimeSec: 60894,
+            isBreak: false,
+        }];
+        const result = computeTimeData(
+            { sessions },
+            { startDate: '2026-07-01', endDate: '2026-07-01' }
+        );
+        // Normalized: #4203 in notes numeric hashtag gets 2h + 1h rest spread = 3.0
+        expect(result.tagTotals['#4203']).toBe(3.0);
+        // #custom stays 0 — never allocated (time routed via notes hashtag)
+        expect(result.tagTotals['#custom']).toBe(0);
+        expect(result.totalHours).toBe(3.0);
+    });
+
+    it('does not normalize sessions with single tag', () => {
+        const sessions = [{
+            id: 2002,
+            date: '2026-07-01',
+            startTime: '2026-07-01T10:00:00.000Z',
+            endTime: '2026-07-01T12:00:00.000Z',
+            duration: '02:00:00',
+            durationSec: 7200,
+            notes: 'original note',
+            dayType: 'Workday',
+            tags: ['work'],
+            accumulatedPauseTimeSec: 100,
+            isBreak: false,
+        }];
+        const result = computeTimeData(
+            { sessions },
+            { startDate: '2026-07-01', endDate: '2026-07-01' }
+        );
+        // Single tag 'work' → #custom gets full time = 2h + 1h rest = 3.0
+        expect(result.tagTotals['#custom']).toBe(3.0);
+        expect(result.totalHours).toBe(3.0);
+    });
+
+    it('does not normalize sessions without accumulatedPauseTimeSec', () => {
+        const sessions = [{
+            id: 2003,
+            date: '2026-07-01',
+            startTime: '2026-07-01T10:00:00.000Z',
+            endTime: '2026-07-01T12:00:00.000Z',
+            duration: '02:00:00',
+            durationSec: 7200,
+            notes: 'original note',
+            dayType: 'Workday',
+            tags: ['work', 'paylar', '4203'],  // >1 tags but NO accumulatedPauseTimeSec
+            isBreak: false,
+        }];
+        const result = computeTimeData(
+            { sessions },
+            { startDate: '2026-07-01', endDate: '2026-07-01' }
+        );
+        // Without normalization: 3 tags (work→#custom, paylar, 4203) split 2h/3 each ≈ 0.67h
+        // Each gets ~0.67 + 0.33 rest = ~1.0 (after roundToHalf)
+        expect(result.tagTotals['#custom']).toBe(1.0);
+        expect(result.tagTotals['paylar']).toBe(1.0);
+        expect(result.tagTotals['4203']).toBe(1.0);
+        expect(result.totalHours).toBe(3.0);
+    });
+
+    it('normalizes sessions with accumulatedPauseTimeSec: 0 and >1 tags', () => {
+        const sessions = [{
+            id: 2004,
+            date: '2026-07-01',
+            startTime: '2026-07-01T10:00:00.000Z',
+            endTime: '2026-07-01T12:00:00.000Z',
+            duration: '02:00:00',
+            durationSec: 7200,
+            notes: 'original note',
+            dayType: 'Workday',
+            tags: ['work', 'paylar', 'n8n'],
+            accumulatedPauseTimeSec: 0,
+            isBreak: false,
+        }];
+        const result = computeTimeData(
+            { sessions },
+            { startDate: '2026-07-01', endDate: '2026-07-01' }
+        );
+        // Normalized: #paylar gets 2h via notes hashtag + 1h rest = 3.0
+        expect(result.tagTotals['#paylar']).toBe(3.0);
+        expect(result.totalHours).toBe(3.0);
+    });
+});
+
+describe('bucket tag allocation', () => {
+    it('uses bucket as sole tag instead of splitting across all tags', () => {
+        const sessions = [{
+            id: 1000,
+            date: '2026-07-06',
+            startTime: '2026-07-06T10:00:00.000Z',
+            endTime: '2026-07-06T12:00:00.000Z',
+            duration: '02:00:00',
+            durationSec: 7200,
+            notes: 'no hashtag here',
+            dayType: 'Workday',
+            tags: ['work', 'projectA', 'projectB', 'projectC'],
+            bucket: 'work',
+            isBreak: false,
+        }];
+        const result = computeTimeData(
+            { sessions },
+            { startDate: '2026-07-06', endDate: '2026-07-06' }
+        );
+        // bucket=work → maps to #custom, full 2h. Only #custom has time, so
+        // restCount=1 → +1.0h rest → roundToHalf(3.0) = 3.0
+        expect(result.tagTotals['#custom']).toBe(3.0);
+        // other tags get 0 time (not eligible for rest spread since they have no time)
+        expect(result.tagTotals['projectA']).toBe(0);
+        expect(result.tagTotals['projectB']).toBe(0);
+        expect(result.tagTotals['projectC']).toBe(0);
+        expect(result.totalHours).toBe(3.0);
+    });
+});
 
     it('allocates time to session tag when notes hashtag is outside selectedTags', () => {
         const result = computeTimeData(sampleData, {

@@ -76,7 +76,20 @@ export function computeTimeData(data, options = {}) {
         return null;
     }
 
-    const { sessions } = data;
+    const sessions = data.sessions.map(s => {
+        const session = { ...s };
+        if (session.accumulatedPauseTimeSec !== undefined && session.tags && session.tags.length > 1) {
+            const restTags = session.tags.slice(1);
+            session.tags = [session.tags[0]];
+            if (restTags.length > 0) {
+                session.notes = session.notes
+                    ? `${session.notes}; ${restTags.map(tag => `#${tag}`).join(' ')}`
+                    : restTags.map(tag => `#${tag}`).join(' ');
+            }
+        }
+        session.isBreak = session.bucket === 'rest' || session.isBreak;
+        return session;
+    });
 
     const filteredSessions = filterSessions(sessions, { startDate, endDate, excludeBreaks: false });
     const displaySessions = filterSessions(sessions, { startDate, endDate, excludeBreaks });
@@ -151,6 +164,17 @@ export function computeTimeData(data, options = {}) {
 
         if (foundSpecialTag) {
             entry[foundSpecialTag] += durationHours;
+        } else if (session.bucket) {
+            const bucketTag = session.bucket;
+            if (bucketTag === "work") {
+                if ("#custom" in entry) {
+                    entry["#custom"] += durationHours;
+                    foundHashtag = true;
+                }
+            } else if (bucketTag in entry) {
+                entry[bucketTag] += durationHours;
+                foundHashtag = true;
+            }
         } else if (session.notes) {
             const hashtags = session.notes.match(/#\d+/g) || [];
             if (hashtags.length > 0) {
@@ -172,17 +196,19 @@ export function computeTimeData(data, options = {}) {
         }
 
         if (!foundHashtag && session.tags && Array.isArray(session.tags) && session.tags.length > 0) {
-            session.tags.forEach(tag => {
-                if (uniqueTags.includes(tag)) {
+            const matchingTags = session.tags.filter(tag => uniqueTags.includes(tag));
+            if (matchingTags.length > 0) {
+                const share = durationHours / matchingTags.length;
+                matchingTags.forEach(tag => {
                     if (tag === "work") {
                         if ("#custom" in entry) {
-                            entry["#custom"] += durationHours;
+                            entry["#custom"] += share;
                         }
                     } else if (tag in entry) {
-                        entry[tag] += durationHours;
+                        entry[tag] += share;
                     }
-                }
-            });
+                });
+            }
         }
     }
 

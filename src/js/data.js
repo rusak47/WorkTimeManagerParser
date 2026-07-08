@@ -9,6 +9,566 @@ export const sampleData = {
 
 
         {
+            "id": 1783447807670,
+            "notes": "in: Block D - parse kart xml; xades - verify; cardsta - implementation & tests & verification",
+            "tags": [
+                "work",
+                "paylar",
+                "n8n",
+                "4203",
+                "4198",
+                "plais",
+                "4202"
+            ],
+            "mood": 5,
+            "date": "2026-07-07",
+            "startTime": "2026-07-07T14:46:26.658Z",
+            "endTime": "2026-07-07T18:10:07.669Z",
+            "duration": "03:23:41",
+            "durationSec": 12221,
+            "dayType": "Workday",
+            "workBlockId": "mram6267-szonf8i5y",
+            "isBreak": false,
+            "bucket": "work"
+        },
+        {
+            "id": 1783435586658,
+            "notes": "",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "date": "2026-07-07",
+            "startTime": "2026-07-07T12:47:45.911Z",
+            "endTime": "2026-07-07T14:46:26.658Z",
+            "duration": "01:58:40",
+            "durationSec": 7120,
+            "dayType": "Workday",
+            "workBlockId": "mram6267-szonf8i5y",
+            "isBreak": true
+        },
+        {
+            "id": 1783428465912,
+            "notes": "in: Block D - parse kart xml; xades - verify; cardsta - implementation",
+            "tags": [
+                "work",
+                "paylar",
+                "n8n",
+                "4203",
+                "4198",
+                "4202"
+            ],
+            "mood": 5,
+            "date": "2026-07-07",
+            "startTime": "2026-07-07T12:17:09.247Z",
+            "endTime": "2026-07-07T12:47:45.911Z",
+            "duration": "00:30:36",
+            "durationSec": 1836,
+            "dayType": "Workday",
+            "workBlockId": "mram6267-szonf8i5y",
+            "isBreak": false,
+            "bucket": "work"
+        },
+        {
+            "id": 1783424720648,
+            "notes": "Unexpected error SIA293 r7148",
+            "tags": [
+                "work",
+                "paylar",
+                "support"
+            ],
+            "mood": 5,
+            "date": "2026-07-07",
+            "startTime": "2026-07-07T11:40:53.042Z",
+            "endTime": "2026-07-07T11:45:20.648Z",
+            "duration": "00:04:27",
+            "durationSec": 267,
+            "dayType": "Workday",
+            "workBlockId": "mra4l21l-209sx4km9",
+            "isBreak": false,
+            "bucket": "work"
+        },
+        {
+            "id": 1783424450798,
+            "notes": "Unexpected error SIA293 r7148",
+            "tags": [
+                "work",
+                "paylar",
+                "support"
+            ],
+            "mood": 5,
+            "date": "2026-07-07",
+            "startTime": "2026-07-07T11:27:57.773Z",
+            "endTime": "2026-07-07T11:40:50.790Z",
+            "duration": "00:12:53",
+            "durationSec": 773,
+            "dayType": "Workday",
+            "workBlockId": "mra4l21l-209sx4km9",
+            "isBreak": false,
+            "bucket": "work"
+        },
+        {
+            "id": 1783423676548,
+            "notes": "Unexpected error SIA293",
+            "tags": [
+                "work",
+                "paylar",
+                "support"
+            ],
+            "mood": 5,
+            "date": "2026-07-07",
+            "startTime": "2026-07-07T11:16:00.000Z",
+            "endTime": "2026-07-07T11:27:00.000Z",
+            "duration": "00:11:00",
+            "durationSec": 660,
+            "dayType": "Workday",
+            "workBlockId": "mra4l21l-209sx4km9",
+            "isBreak": false,
+            "bucket": "work"
+        },
+        {
+            "id": 1783422981683,
+            "notes": "Break session",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "date": "2026-07-07",
+            "startTime": "2026-07-07T11:01:00.803Z",
+            "endTime": "2026-07-07T11:16:21.683Z",
+            "duration": "00:15:20",
+            "durationSec": 920,
+            "dayType": "Workday",
+            "workBlockId": "mra4l21l-209sx4km9",
+            "isBreak": true
+        },
+        {
+            "id": 1783422060829,
+            "notes": "in: Block B (Decode EDoc); out: implementation",
+            "tags": [
+                "work",
+                "paylar",
+                "n8n",
+                "4203",
+                "4198",
+                "plais",
+                "4200"
+            ],
+            "mood": 5,
+            "date": "2026-07-07",
+            "startTime": "2026-07-07T09:40:00.000Z",
+            "endTime": "2026-07-07T11:01:00.000Z",
+            "duration": "01:21:00",
+            "durationSec": 4860,
+            "dayType": "Workday",
+            "workBlockId": "mra4l21l-209sx4km9",
+            "isBreak": false,
+            "bucket": "work"
+        },
+        {
+            "id": 1783417226058,
+            "notes": "Break session",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "date": "2026-07-07",
+            "startTime": "2026-07-07T08:06:47.530Z",
+            "endTime": "2026-07-07T09:40:26.058Z",
+            "duration": "01:33:38",
+            "durationSec": 5618,
+            "dayType": "Workday",
+            "workBlockId": "mra4l21l-209sx4km9",
+            "isBreak": true
+        },
+        {
+            "id": 1783411607532,
+            "notes": "verify WIP -in WIP cardsta analyze task",
+            "tags": [
+                "work",
+                "paylar",
+                "n8n",
+                "4203",
+                "4198",
+                "plais",
+                "4202"
+            ],
+            "mood": 5,
+            "date": "2026-07-07",
+            "startTime": "2026-07-07T05:59:56.215Z",
+            "endTime": "2026-07-07T08:06:47.530Z",
+            "duration": "02:06:51",
+            "durationSec": 7611,
+            "dayType": "Workday",
+            "workBlockId": "mra4l21l-209sx4km9",
+            "isBreak": false,
+            "bucket": "work"
+        },
+        {
+            "id": 1783403995424,
+            "notes": "WIP -in WIP -out finalize & test",
+            "tags": [
+                "work",
+                "paylar",
+                "n8n",
+                "4203",
+                "4198",
+                "plais",
+                "4200"
+            ],
+            "mood": 5,
+            "date": "2026-07-07",
+            "startTime": "2026-07-07T04:04:55.833Z",
+            "endTime": "2026-07-07T05:59:55.412Z",
+            "duration": "01:54:59",
+            "durationSec": 6899,
+            "dayType": "Workday",
+            "workBlockId": "mra4l21l-209sx4km9",
+            "isBreak": false,
+            "bucket": "work"
+        },
+        {
+            "id": 1783370654702,
+            "notes": "investigate Sanctuario and plais example - generate own signer -in -out Implement WWW Sender workflow ZGJujlbEZltgrGi4",
+            "tags": [
+                "work",
+                "paylar",
+                "n8n",
+                "4203",
+                "4198",
+                "plais",
+                "4200"
+            ],
+            "mood": 5,
+            "date": "2026-07-06",
+            "startTime": "2026-07-06T19:22:38.751Z",
+            "endTime": "2026-07-06T20:44:14.701Z",
+            "duration": "01:21:35",
+            "durationSec": 4895,
+            "dayType": "Workday",
+            "workBlockId": "mr96wq7u-zq4l8j5ul",
+            "isBreak": false,
+            "bucket": "work"
+        },
+        {
+            "id": 1783365757994,
+            "notes": "investigate xades v1.1.1 fallback; -in -out kSZhM9fmZGqot45l get/create plais_messages; My8pCkLOwkmgvRsf - populate test messaes",
+            "tags": [
+                "work",
+                "paylar",
+                "n8n",
+                "4203",
+                "4198",
+                "plais",
+                "4200"
+            ],
+            "mood": 5,
+            "date": "2026-07-06",
+            "startTime": "2026-07-06T17:23:19.952Z",
+            "endTime": "2026-07-06T19:22:37.953Z",
+            "duration": "01:59:18",
+            "durationSec": 7158,
+            "dayType": "Workday",
+            "workBlockId": "mr96wq7u-zq4l8j5ul",
+            "isBreak": false,
+            "bucket": "work"
+        },
+        {
+            "id": 1783358599950,
+            "notes": "Break session",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "date": "2026-07-06",
+            "startTime": "2026-07-06T16:58:40.620Z",
+            "endTime": "2026-07-06T17:23:19.950Z",
+            "duration": "00:24:39",
+            "durationSec": 1479,
+            "dayType": "Workday",
+            "workBlockId": "mr96wq7u-zq4l8j5ul",
+            "isBreak": true
+        },
+        {
+            "id": 1783357120622,
+            "notes": "add xades v1.1.1 fallback; -in -out analyze tasks, propose plans",
+            "tags": [
+                "work",
+                "paylar",
+                "n8n",
+                "4203",
+                "4198",
+                "plais",
+                "4200"
+            ],
+            "mood": 5,
+            "date": "2026-07-06",
+            "startTime": "2026-07-06T16:32:10.432Z",
+            "endTime": "2026-07-06T16:58:40.620Z",
+            "duration": "00:26:30",
+            "durationSec": 1590,
+            "dayType": "Workday",
+            "workBlockId": "mr96wq7u-zq4l8j5ul",
+            "isBreak": false,
+            "bucket": "work"
+        },
+        {
+            "id": 1783355530432,
+            "notes": "Break session",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "date": "2026-07-06",
+            "startTime": "2026-07-06T15:53:57.977Z",
+            "endTime": "2026-07-06T16:32:10.432Z",
+            "duration": "00:38:12",
+            "durationSec": 2292,
+            "dayType": "Workday",
+            "workBlockId": "mr96wq7u-zq4l8j5ul",
+            "isBreak": true
+        },
+        {
+            "id": 1783353237979,
+            "notes": "add xades v1.1.1 fallback; -in -out analyze tasks, propose plans",
+            "tags": [
+                "work",
+                "paylar",
+                "n8n",
+                "4203",
+                "4198",
+                "plais",
+                "4200"
+            ],
+            "mood": 5,
+            "date": "2026-07-06",
+            "startTime": "2026-07-06T14:08:55.241Z",
+            "endTime": "2026-07-06T15:53:57.977Z",
+            "duration": "01:45:02",
+            "durationSec": 6302,
+            "dayType": "Workday",
+            "workBlockId": "mr96wq7u-zq4l8j5ul",
+            "isBreak": false,
+            "bucket": "work"
+        },
+        {
+            "id": 1783346933795,
+            "notes": "",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "date": "2026-07-06",
+            "startTime": "2026-07-06T13:00:01.513Z",
+            "endTime": "2026-07-06T14:08:53.794Z",
+            "duration": "01:08:52",
+            "durationSec": 4132,
+            "dayType": "Workday",
+            "workBlockId": "mr96wq7u-zq4l8j5ul",
+            "isBreak": false,
+            "bucket": "rest"
+        },
+        {
+            "id": 1783342798498,
+            "notes": "",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "date": "2026-07-06",
+            "startTime": "2026-07-06T12:22:13.434Z",
+            "endTime": "2026-07-06T12:59:58.498Z",
+            "duration": "00:37:45",
+            "durationSec": 2265,
+            "dayType": "Workday",
+            "workBlockId": "mr96wq7u-zq4l8j5ul",
+            "isBreak": false,
+            "bucket": "rest"
+        },
+        {
+            "id": 1783110479453,
+            "notes": "test against provided example -> outdated version -> incompatible lib support",
+            "tags": [
+                "work",
+                "4203",
+                "paylar",
+                "plais"
+            ],
+            "mood": 5,
+            "date": "2026-07-03",
+            "startTime": "2026-07-03T16:27:57.903Z",
+            "endTime": "2026-07-03T20:26:36.129Z",
+            "duration": "03:58:38",
+            "durationSec": 14318,
+            "accumulatedPauseTimeSec": 0,
+            "dayType": "Workday"
+        },
+        {
+            "id": 1783079801864,
+            "notes": "plais dps config",
+            "tags": [
+                "work",
+                "meet",
+                "paylar"
+            ],
+            "mood": 5,
+            "date": "2026-07-03",
+            "startTime": "2026-07-03T10:42:21.674Z",
+            "endTime": "2026-07-03T11:56:14.529Z",
+            "duration": "01:13:52",
+            "durationSec": 4432,
+            "accumulatedPauseTimeSec": 0,
+            "dayType": "Workday"
+        },
+        {
+            "id": 1783075339448,
+            "notes": "sign methods",
+            "tags": [
+                "work",
+                "4203",
+                "paylar",
+                "plais",
+                "n8n"
+            ],
+            "mood": 5,
+            "date": "2026-07-02",
+            "startTime": "2026-07-02T19:57:00.000Z",
+            "endTime": "2026-07-03T10:41:00.000Z",
+            "duration": "02:05:49",
+            "durationSec": 7549,
+            "accumulatedPauseTimeSec": 45491,
+            "dayType": "Workday",
+            "isBreak": false
+        },
+        {
+            "id": 1783070879215,
+            "notes": "Break session",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "date": "2026-07-03",
+            "startTime": "2026-07-03T08:14:03.627Z",
+            "endTime": "2026-07-03T09:27:59.215Z",
+            "duration": "01:13:55",
+            "durationSec": 4435,
+            "dayType": "Workday",
+            "isBreak": true
+        },
+        {
+            "id": 1783066010219,
+            "notes": "Break session",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "date": "2026-07-02",
+            "startTime": "2026-07-02T20:42:34.035Z",
+            "endTime": "2026-07-03T08:06:50.219Z",
+            "duration": "11:24:16",
+            "durationSec": 41056,
+            "dayType": "Workday",
+            "isBreak": true
+        },
+        {
+            "id": 1783022254204,
+            "notes": "deprecate gateway; add dedicated /helper service",
+            "tags": [
+                "work",
+                "paylar",
+                "4203",
+                "review"
+            ],
+            "mood": 5,
+            "date": "2026-07-01",
+            "startTime": "2026-07-01T18:23:00.000Z",
+            "endTime": "2026-07-02T19:55:00.000Z",
+            "duration": "08:37:06",
+            "durationSec": 31026,
+            "accumulatedPauseTimeSec": 60894,
+            "dayType": "Workday",
+            "isBreak": false
+        },
+        {
+            "id": 1783008066603,
+            "notes": "Break session",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "date": "2026-07-02",
+            "startTime": "2026-07-02T14:38:33.375Z",
+            "endTime": "2026-07-02T16:01:06.604Z",
+            "duration": "01:22:33",
+            "durationSec": 4953,
+            "dayType": "Workday",
+            "isBreak": true
+        },
+        {
+            "id": 1782992624779,
+            "notes": "Break session",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "date": "2026-07-02",
+            "startTime": "2026-07-02T10:08:50.569Z",
+            "endTime": "2026-07-02T11:43:44.779Z",
+            "duration": "01:34:54",
+            "durationSec": 5694,
+            "dayType": "Workday",
+            "isBreak": true
+        },
+        {
+            "id": 1782981334081,
+            "notes": "Break session",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "date": "2026-07-02",
+            "startTime": "2026-07-02T03:53:27.756Z",
+            "endTime": "2026-07-02T08:35:34.081Z",
+            "duration": "04:42:06",
+            "durationSec": 16926,
+            "dayType": "Workday",
+            "isBreak": true
+        },
+        {
+            "id": 1782963559112,
+            "notes": "Break session",
+            "tags": [
+                "rest"
+            ],
+            "mood": 5,
+            "date": "2026-07-01",
+            "startTime": "2026-07-01T18:23:58.367Z",
+            "endTime": "2026-07-02T03:39:19.112Z",
+            "duration": "09:15:20",
+            "durationSec": 33320,
+            "dayType": "Workday",
+            "isBreak": true
+        },
+        {
+            "id": 1782930223264,
+            "notes": "force scheme validation",
+            "tags": [
+                "work",
+                "4064",
+                "paylar",
+                "support"
+            ],
+            "mood": 5,
+            "date": "2026-07-01",
+            "startTime": "2026-07-01T17:17:35.514Z",
+            "endTime": "2026-07-01T18:23:01.176Z",
+            "duration": "01:05:25",
+            "durationSec": 3925,
+            "accumulatedPauseTimeSec": 0,
+            "dayType": "Workday"
+        },
+
+        {
             "id": 1782504531201,
             "notes": "#opencode timer",
             "tags": [
