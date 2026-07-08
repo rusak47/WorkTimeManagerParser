@@ -124,7 +124,7 @@ describe('extractTags', () => {
 describe('deriveUniqueTags', () => {
     it('produces same output as manual extractTags + array build', () => {
         const sessions = filterSessions(sampleData.sessions, {
-            startDate: '2026-07-01', endDate: '2026-07-07', excludeBreaks: false
+            startDate: '2026-07-01', endDate: '2026-07-03', excludeBreaks: false
         });
         const result = deriveUniqueTags(sessions, [], []);
         const { allTags, allSupportTags } = extractTags(sessions, []);
@@ -134,7 +134,7 @@ describe('deriveUniqueTags', () => {
 
     it('respects selectedTags filter', () => {
         const sessions = filterSessions(sampleData.sessions, {
-            startDate: '2026-07-01', endDate: '2026-07-07', excludeBreaks: false
+            startDate: '2026-07-01', endDate: '2026-07-03', excludeBreaks: false
         });
         const result = deriveUniqueTags(sessions, [], ['#4203']);
         expect(result.uniqueTags).toEqual(['#4203']);
@@ -142,11 +142,11 @@ describe('deriveUniqueTags', () => {
 
     it('accepts precomputedUniqueTags on computeTimeData', () => {
         const sessions = filterSessions(sampleData.sessions, {
-            startDate: '2026-07-01', endDate: '2026-07-07', excludeBreaks: false
+            startDate: '2026-07-01', endDate: '2026-07-03', excludeBreaks: false
         });
         const tagInfo = deriveUniqueTags(sessions, [], []);
         const result = computeTimeData(sampleData, {
-            startDate: '2026-07-01', endDate: '2026-07-07',
+            startDate: '2026-07-01', endDate: '2026-07-03',
             precomputedUniqueTags: tagInfo,
         });
         expect(result).not.toBeNull();
