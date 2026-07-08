@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Planned
+- **Tag extraction rearchitecture** — split tag discovery from time allocation; fix new-format bucket sessions to distribute time across project tags instead of dumping to `#custom` (3-phase plan in `tasks/new/tag-extraction-rearchitecture/`)
+
+### Added
+
 ### Added
 - **REST_EXCLUDED_TAGS** — `['#meet']` excluded from rest spread distribution so printed time matches original session duration. Orphaned rest routes to `#custom` when all non-rest tags are excluded (3f3b138)
 
