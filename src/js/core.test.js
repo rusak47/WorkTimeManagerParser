@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeTimeData, filterSessions, extractTags, checkIsCorrectRecord } from './core.js';
+import { computeTimeData, filterSessions, extractTags, checkIsCorrectRecord, deriveUniqueTags } from './core.js';
 import { sampleData } from './data.js';
 import { roundToHalf, datediff, durationToSeconds } from './utils.js';
 
@@ -118,6 +118,40 @@ describe('extractTags', () => {
         expect(allTags.has('learning')).toBe(true);
         expect(allTags.has('work')).toBe(false);
         expect(allTags.has('meeting')).toBe(false);
+    });
+});
+
+describe('deriveUniqueTags', () => {
+    it('produces same output as manual extractTags + array build', () => {
+        const sessions = filterSessions(sampleData.sessions, {
+            startDate: '2026-07-01', endDate: '2026-07-07', excludeBreaks: false
+        });
+        const result = deriveUniqueTags(sessions, [], []);
+        const { allTags, allSupportTags } = extractTags(sessions, []);
+        const expected = Array.from(allTags).concat(Array.from(allSupportTags)).sort();
+        expect(result.uniqueTags).toEqual(expected);
+    });
+
+    it('respects selectedTags filter', () => {
+        const sessions = filterSessions(sampleData.sessions, {
+            startDate: '2026-07-01', endDate: '2026-07-07', excludeBreaks: false
+        });
+        const result = deriveUniqueTags(sessions, [], ['#4203']);
+        expect(result.uniqueTags).toEqual(['#4203']);
+    });
+
+    it('accepts precomputedUniqueTags on computeTimeData', () => {
+        const sessions = filterSessions(sampleData.sessions, {
+            startDate: '2026-07-01', endDate: '2026-07-07', excludeBreaks: false
+        });
+        const tagInfo = deriveUniqueTags(sessions, [], []);
+        const result = computeTimeData(sampleData, {
+            startDate: '2026-07-01', endDate: '2026-07-07',
+            precomputedUniqueTags: tagInfo,
+        });
+        expect(result).not.toBeNull();
+        expect(Array.isArray(result.uniqueTags)).toBe(true);
+        expect(result.uniqueTags.length).toBeGreaterThan(0);
     });
 });
 

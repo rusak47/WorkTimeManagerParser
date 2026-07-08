@@ -57,6 +57,15 @@ export function extractTags(sessions, specialTags) {
     return { allTags, allSupportTags };
 }
 
+export function deriveUniqueTags(sessions, specialTags, selectedTags) {
+    const { allTags, allSupportTags } = extractTags(sessions, specialTags);
+    const allTagsArray = Array.from(allTags).concat(Array.from(allSupportTags));
+    const uniqueTags = selectedTags && selectedTags.length > 0
+        ? [...selectedTags].sort()
+        : [...allTagsArray].sort();
+    return { allTags, allSupportTags, uniqueTags };
+}
+
 export function computeTimeData(data, options = {}) {
     const {
         startDate = '2000-01-01',
@@ -70,6 +79,7 @@ export function computeTimeData(data, options = {}) {
         holidayMultiplier = 1,
         weekendMultiplier = 1,
         calendarLookup = null,
+        precomputedUniqueTags = null,
     } = options;
 
     if (!data || !data.sessions || !Array.isArray(data.sessions)) {
@@ -132,12 +142,13 @@ export function computeTimeData(data, options = {}) {
         }
     });
 
-    const { allTags, allSupportTags } = extractTags(filteredSessions, specialTags);
+    let uniqueTags, allTags, allSupportTags;
+    if (precomputedUniqueTags) {
+        ({ uniqueTags, allTags, allSupportTags } = precomputedUniqueTags);
+    } else {
+        ({ uniqueTags, allTags, allSupportTags } = deriveUniqueTags(filteredSessions, specialTags, selectedTags));
+    }
     const allTagsArray = Array.from(allTags).concat(Array.from(allSupportTags));
-
-    let uniqueTags = selectedTags && selectedTags.length > 0
-        ? [...selectedTags].sort()
-        : [...allTagsArray].sort();
 
     const timeData = {};
 

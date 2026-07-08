@@ -29,7 +29,9 @@ Replace the inline block at `core.js:135-140` with a call to `deriveUniqueTags`.
 
 ### 2. Accept `uniqueTags` as a parameter in `computeTimeData`
 
-Add `uniqueTags` to the options destructuring. If provided, skip the `deriveUniqueTags` call. If not provided, call it internally (backward compatibility).
+Add `precomputedUniqueTags` to the options destructuring. If provided, skip the `deriveUniqueTags` call. If not provided, call it internally (backward compatibility).
+
+Use `let` with destructuring assignment — parenthesized so `{}` is not parsed as a block:
 
 ```js
 export function computeTimeData(data, options = {}) {
@@ -41,39 +43,72 @@ export function computeTimeData(data, options = {}) {
 
     // ... normalization, filtering ...
 
+    let uniqueTags, allTags, allSupportTags;
     if (precomputedUniqueTags) {
-        var { uniqueTags, allTags, allSupportTags } = precomputedUniqueTags;
+        ({ uniqueTags, allTags, allSupportTags } = precomputedUniqueTags);
     } else {
-        var { uniqueTags, allTags, allSupportTags } = deriveUniqueTags(filteredSessions, specialTags, selectedTags);
+        ({ uniqueTags, allTags, allSupportTags } = deriveUniqueTags(filteredSessions, specialTags, selectedTags));
     }
-    // ... rest of computeTimeData ...
+    const allTagsArray = Array.from(allTags).concat(Array.from(allSupportTags));
+    // ... rest of computeTimeData (allTagsArray already defined above) ...
 }
 ```
 
+Note: `allTagsArray` moves after the if/else block since it needs `allTags`/`allSupportTags` from either branch.
+
 ### 3. Have `processData` call `deriveUniqueTags` once
 
-In `src/js/all.js`, replace the inline `extractTags` call at line 156:
+In `src/js/all.js`, replace the inline `extractTags` call at line 156.
+
+Note: `selectedTags` in `processData` comes from `selectedTagsOverride` (the `options.selectedTags` override) or is empty. The TomSelect population below uses the full tag set — `selectedTags` here is only for the `deriveUniqueTags` internal filtering, defaulting to `[]`:
 
 ```js
-const tagInfo = deriveUniqueTags(periodSessions, specialTags, selectedTags ?? []);
+const tagInfo = deriveUniqueTags(periodSessions, specialTags, selectedTagsOverride ?? []);
 const { allTags, allSupportTags, uniqueTags } = tagInfo;
+const allTagsArray = Array.from(allTags).concat(Array.from(allSupportTags));
 ```
 
-Pass `tagInfo` as `precomputedUniqueTags` to `computeTimeData`:
+Then thread `tagInfo` through the `recomputeAndRender` state object so it reaches `computeTimeData`:
 
 ```js
-const result = computeTimeData(currentData, {
-    startDate, endDate,
-    ...
-    precomputedUniqueTags: tagInfo,
+recomputeAndRender({
+    startDate,
+    endDate,
+    excludeBreaks,
+    specialTagsInput,
+    roundToHalvesEnabled,
+    debugMode,
+    holidayMultiplier,
+    weekendMultiplier,
+    precomputedUniqueTags: tagInfo,  // NEW
 });
 ```
 
-### 4. Remove stats from `computeTimeData` return
+In `recomputeAndRender`, accept and pass `precomputedUniqueTags` to `computeTimeData`:
 
-Remove the recalculation of `totalHours`, `avgDailyHours`, `topTag`, `topTagHours` from the return of `computeTimeData` (lines 353-380). Keep `tagTotals` and `uniqueTags` as they are. Comment: `all.js` already recalculates these from `timeData` (lines 84-106), and the AGENTS.md confirms `processData discards computeTimeData's totalHours/avgDailyHours/topTag/topTagHours`.
+```js
+const result = computeTimeData(currentData, {
+    startDate,
+    endDate,
+    excludeBreaks,
+    specialTags,
+    selectedTags,
+    roundToHalvesEnabled,
+    debugMode,
+    holidayMultiplier,
+    weekendMultiplier,
+    calendarLookup: CALENDAR_LOOKUP,
+    precomputedUniqueTags: state?.precomputedUniqueTags ?? null,  // NEW
+});
+```
 
-Update return object to only include:
+### 4. Keep stats in `computeTimeData` return (no change)
+
+The stats (`totalHours`, `avgDailyHours`, `topTag`, `topTagHours`) are computed at lines 353-380 and referenced by **36 test assertions**. Remove only what's dead weight; these fields are alive in tests.
+
+**Decision**: leave the stats computation and return **exactly as they are** in Phase 1. Removal is reserved for Phase 3 (`phase-3-consolidate-and-cleanup.md` §3) which will introduce a `computeStats` test helper and migrate all test consumers at once.
+
+The return object remains unchanged:
 - `filteredSessions`
 - `sessionsByDate`
 - `allTagsArray`
@@ -81,6 +116,10 @@ Update return object to only include:
 - `uniqueTags`
 - `timeData`
 - `tagTotals`
+- `totalHours`
+- `avgDailyHours`
+- `topTag`
+- `topTagHours: maxHours`
 
 ## Tests
 
@@ -125,9 +164,7 @@ describe('deriveUniqueTags', () => {
 
 ### Existing test changes
 
-- The `computeTimeData` tests that check `totalHours`, `avgDailyHours`, `topTag`, `topTagHours` should now read those from a separate helper in the test file or from the recomputation in `all.js`. However — since the existing tests import `computeTimeData` directly and those fields are already in the return value, we must keep them or update all consumers. **Decision**: keep the fields in the return but recalculate them from `timeData`/`tagTotals` internally instead of the inline computation, to match the all.js pattern. Or simply keep them as-is and only mark for removal in Phase 3 if no consumer relies on them.
-
-  Actually, the simplest approach: keep them computed, but move the computation to after `tagTotals` is complete and derive them from `tagTotals`. That's a minor structure change but preserves all tests.
+None. All existing tests pass without modification. The stats fields remain in the return unchanged.
 
 ## Verification
 

@@ -1,6 +1,6 @@
 import { syncSpecialTags, generateTableHeader, generateTableBody, generateTagLegend } from './ui.js';
 import { roundToHalf, copyAndEmailTimeTable2, datediff, durationToSeconds } from './utils.js';
-import { computeTimeData, extractTags, filterSessions } from './core.js';
+import { computeTimeData, deriveUniqueTags, filterSessions } from './core.js';
 import { DEFAULT_EXCLUDED_TAGS, sampleData } from './data.js';
 import holidaysRaw from '../holidays.json' with { type: 'json' };
 
@@ -22,6 +22,7 @@ function recomputeAndRender(state) {
     const debugMode = state !== undefined ? state.debugMode : document.getElementById('debugMode')?.checked || false;
     const holidayMultiplier = state !== undefined ? state.holidayMultiplier : parseFloat(document.getElementById('holidayMultiplier').value) || 1;
     const weekendMultiplier = state !== undefined ? state.weekendMultiplier : parseFloat(document.getElementById('weekendMultiplier').value) || 1;
+    const precomputedUniqueTags = state?.precomputedUniqueTags ?? null;
 
     const tagFilter = document.getElementById('tagFilter')?.tomselect;
     const tableContainer = document.getElementById('tableContainer');
@@ -52,6 +53,7 @@ function recomputeAndRender(state) {
         holidayMultiplier,
         weekendMultiplier,
         calendarLookup: CALENDAR_LOOKUP,
+        precomputedUniqueTags,
     });
 
     if (!result || Object.keys(result.timeData).length === 0) {
@@ -153,7 +155,8 @@ export function processData(data, options = {}) {
     const periodSessions = filterSessions(data.sessions, { startDate, endDate, excludeBreaks });
 
     if (tagFilter) {
-        const { allTags, allSupportTags } = extractTags(periodSessions, specialTags);
+        const tagInfo = deriveUniqueTags(periodSessions, specialTags, selectedTagsOverride ?? []);
+        const { allTags, allSupportTags } = tagInfo;
         const allTagsArray = Array.from(allTags).concat(Array.from(allSupportTags));
 
         const previousItems = tagFilter.items.slice();
