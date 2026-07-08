@@ -66,6 +66,70 @@ export function deriveUniqueTags(sessions, specialTags, selectedTags) {
     return { allTags, allSupportTags, uniqueTags };
 }
 
+export function normalizeSessions(sessions) {
+    return sessions.map(s => {
+        const session = { ...s };
+        if (session.accumulatedPauseTimeSec !== undefined && session.tags && session.tags.length > 1) {
+            const restTags = session.tags.slice(1);
+            session.tags = [session.tags[0]];
+            if (restTags.length > 0) {
+                session.notes = session.notes
+                    ? `${session.notes}; ${restTags.map(tag => `#${tag}`).join(' ')}`
+                    : restTags.map(tag => `#${tag}`).join(' ');
+            }
+        }
+        session.isBreak = session.bucket === 'rest' || session.isBreak;
+        return session;
+    });
+}
+
+export function resolveSessionAllocation(session, specialTags, uniqueTags) {
+    if (specialTags.length > 0 && session.notes) {
+        for (const specialTag of specialTags) {
+            if (session.notes.toLowerCase().includes(specialTag)) {
+                return { type: 'single', tag: `${specialTag} support` };
+            }
+        }
+    }
+
+    if (session.bucket) {
+        if (session.bucket === "work") {
+            return { type: 'single', tag: '#custom' };
+        }
+        if (uniqueTags.includes(session.bucket)) {
+            return { type: 'single', tag: session.bucket };
+        }
+    }
+
+    if (session.notes) {
+        const redmineTags = session.notes.match(/#\d+/g);
+        if (redmineTags?.length > 0) {
+            const tag = redmineTags[0].toLowerCase();
+            if (uniqueTags.includes(tag)) {
+                return { type: 'single', tag };
+            }
+        }
+
+        const customTags = session.notes.match(/#[a-zA-Z]+[a-zA-Z0-9]{0,}/);
+        if (customTags?.length > 0) {
+            const tag = customTags[0].toLowerCase();
+            if (uniqueTags.includes(tag)) {
+                return { type: 'single', tag };
+            }
+        }
+    }
+
+    if (session.tags?.length > 0) {
+        const matchingTags = session.tags.filter(t => uniqueTags.includes(t));
+        if (matchingTags.length > 0) {
+            const resolved = matchingTags.map(t => t === 'work' ? '#custom' : t);
+            return { type: 'split', tags: resolved };
+        }
+    }
+
+    return null;
+}
+
 export function computeTimeData(data, options = {}) {
     const {
         startDate = '2000-01-01',
@@ -86,21 +150,7 @@ export function computeTimeData(data, options = {}) {
         return null;
     }
 
-    const sessions = data.sessions.map(s => {
-        const session = { ...s };
-        if (session.accumulatedPauseTimeSec !== undefined && session.tags && session.tags.length > 1) {
-            const restTags = session.tags.slice(1);
-            session.tags = [session.tags[0]];
-            if (restTags.length > 0) {
-                session.notes = session.notes
-                    ? `${session.notes}; ${restTags.map(tag => `#${tag}`).join(' ')}`
-                    : restTags.map(tag => `#${tag}`).join(' ');
-            }
-        }
-        session.isBreak = session.bucket === 'rest' || session.isBreak;
-        return session;
-    });
-
+    const sessions = normalizeSessions(data.sessions);
     const filteredSessions = filterSessions(sessions, { startDate, endDate, excludeBreaks: false });
     const displaySessions = filterSessions(sessions, { startDate, endDate, excludeBreaks });
 
@@ -150,6 +200,20 @@ export function computeTimeData(data, options = {}) {
     }
     const allTagsArray = Array.from(allTags).concat(Array.from(allSupportTags));
 
+    const allocationMap = new Map();
+    filteredSessions.forEach(s => allocationMap.set(s, resolveSessionAllocation(s, specialTags, uniqueTags)));
+
+    function applyAllocation(entry, session, durationHours) {
+        const alloc = allocationMap.get(session);
+        if (!alloc) return;
+        if (alloc.type === 'single') {
+            entry[alloc.tag] += durationHours;
+        } else if (alloc.type === 'split') {
+            const share = durationHours / alloc.tags.length;
+            alloc.tags.forEach(tag => { entry[tag] += share; });
+        }
+    }
+
     const timeData = {};
 
     function dateEntry(dateStr) {
@@ -158,69 +222,6 @@ export function computeTimeData(data, options = {}) {
             uniqueTags.forEach(tag => { timeData[dateStr][tag] = 0; });
         }
         return timeData[dateStr];
-    }
-
-    function allocateTime(entry, session, durationHours) {
-        let foundSpecialTag = false;
-        let foundHashtag = false;
-
-        if (specialTags.length > 0 && session.notes) {
-            for (const specialTag of specialTags) {
-                if (session.notes.toLowerCase().includes(specialTag)) {
-                    foundSpecialTag = `${specialTag} support`;
-                    break;
-                }
-            }
-        }
-
-        if (foundSpecialTag) {
-            entry[foundSpecialTag] += durationHours;
-        } else if (session.bucket) {
-            const bucketTag = session.bucket;
-            if (bucketTag === "work") {
-                if ("#custom" in entry) {
-                    entry["#custom"] += durationHours;
-                    foundHashtag = true;
-                }
-            } else if (bucketTag in entry) {
-                entry[bucketTag] += durationHours;
-                foundHashtag = true;
-            }
-        } else if (session.notes) {
-            const hashtags = session.notes.match(/#\d+/g) || [];
-            if (hashtags.length > 0) {
-                const tag = hashtags[0].toLowerCase();
-                if (tag in entry) {
-                    entry[tag] += durationHours;
-                    foundHashtag = true;
-                }
-            }
-
-            const customHashtags = session.notes.match(/#[a-zA-Z]+[a-zA-Z0-9]{0,}/) || [];
-            if (!foundHashtag && customHashtags.length > 0) {
-                const tag = customHashtags[0].toLowerCase();
-                if (tag in entry) {
-                    entry[tag] += durationHours;
-                    foundHashtag = true;
-                }
-            }
-        }
-
-        if (!foundHashtag && session.tags && Array.isArray(session.tags) && session.tags.length > 0) {
-            const matchingTags = session.tags.filter(tag => uniqueTags.includes(tag));
-            if (matchingTags.length > 0) {
-                const share = durationHours / matchingTags.length;
-                matchingTags.forEach(tag => {
-                    if (tag === "work") {
-                        if ("#custom" in entry) {
-                            entry["#custom"] += share;
-                        }
-                    } else if (tag in entry) {
-                        entry[tag] += share;
-                    }
-                });
-            }
-        }
     }
 
     filteredSessions.forEach(session => {
@@ -263,7 +264,7 @@ export function computeTimeData(data, options = {}) {
                     console.debug(`[computeTimeData]   date=${dateStr} id=${session.id} dayMs=${dayMs} totalMs=${totalMs} prop=${proportion.toFixed(4)} dur=${dayDuration.toFixed(4)}h${roundToHalvesEnabled ? ' (rounded)' : ''}`);
                 }
 
-                allocateTime(dateEntry(dateStr), session, dayDuration);
+                applyAllocation(dateEntry(dateStr), session, dayDuration);
             }
 
             dayCursor.setUTCDate(dayCursor.getUTCDate() + 1);

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeTimeData, filterSessions, extractTags, checkIsCorrectRecord, deriveUniqueTags } from './core.js';
+import { computeTimeData, filterSessions, extractTags, checkIsCorrectRecord, deriveUniqueTags, resolveSessionAllocation } from './core.js';
 import { sampleData } from './data.js';
 import { roundToHalf, datediff, durationToSeconds } from './utils.js';
 
@@ -152,6 +152,43 @@ describe('deriveUniqueTags', () => {
         expect(result).not.toBeNull();
         expect(Array.isArray(result.uniqueTags)).toBe(true);
         expect(result.uniqueTags.length).toBeGreaterThan(0);
+    });
+});
+
+describe('resolveSessionAllocation', () => {
+    it('priority 1: special tag match → support tag', () => {
+        const s = { notes: 'work on #4182 bonfire task' };
+        expect(resolveSessionAllocation(s, ['bonfire'], ['bonfire support']))
+            .toEqual({ type: 'single', tag: 'bonfire support' });
+    });
+
+    it('priority 2: bucket:work → #custom', () => {
+        const s = { bucket: 'work', tags: ['work', 'paylar', 'n8n'], notes: '' };
+        expect(resolveSessionAllocation(s, [], ['#custom', 'work', 'paylar', 'n8n']))
+            .toEqual({ type: 'single', tag: '#custom' });
+    });
+
+    it('priority 3a: #\\d+ in notes', () => {
+        const s = { notes: 'fixed #4203 and #4204', tags: ['work'] };
+        expect(resolveSessionAllocation(s, [], ['#custom', '#4203', '#4204']))
+            .toEqual({ type: 'single', tag: '#4203' });
+    });
+
+    it('priority 3b: #[a-zA-Z]+ in notes (no redmine match)', () => {
+        const s = { notes: 'meeting with team #meet', tags: ['work'] };
+        expect(resolveSessionAllocation(s, [], ['#custom', '#meet']))
+            .toEqual({ type: 'single', tag: '#meet' });
+    });
+
+    it('priority 4: session.tags split (no notes match, no bucket)', () => {
+        const s = { notes: 'general work', tags: ['work', 'paylar', 'n8n'] };
+        expect(resolveSessionAllocation(s, [], ['#custom', 'paylar', 'n8n', 'work']))
+            .toEqual({ type: 'split', tags: ['#custom', 'paylar', 'n8n'] });
+    });
+
+    it('no match → null', () => {
+        const s = { notes: '', tags: [] };
+        expect(resolveSessionAllocation(s, [], [])).toBeNull();
     });
 });
 
