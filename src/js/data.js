@@ -3,6 +3,8 @@ export const DEFAULT_EXCLUDED_TAGS = [
     '#rest', '#security', '#interactivity', '#vop', '#gw', '#payment', '#api', '#centrolinkvop', '#centrolink', '#soap',
     '#n8n', '#meet', '#spotbugs', '#lttax'
 ];
+export const REST_TIME_MIN = 60;
+export const REST_EXCLUDED_TAGS = ['#meet']; //keep this value const (rounding is ok); but dont split or add rest time 
 
 export const sampleData = {
     "sessions": [

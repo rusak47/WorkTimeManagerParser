@@ -17,7 +17,7 @@ function recomputeAndRender(state) {
     const endDate = state?.endDate ?? document.getElementById('endDate').value;
     const excludeBreaks = state !== undefined ? state.excludeBreaks : document.getElementById('excludeBreaks').checked;
     const specialTagsInput = state?.specialTagsInput ?? document.getElementById('specialTags').value;
-    const specialTags = specialTagsInput.split(',').map(tag => tag.trim()).filter(tag => tag);
+    const additionalSpecialTags = specialTagsInput.split(',').map(tag => tag.trim()).filter(tag => tag);
     const roundToHalvesEnabled = state !== undefined ? state.roundToHalvesEnabled : document.getElementById('roundToHalves').checked;
     const debugMode = state !== undefined ? state.debugMode : document.getElementById('debugMode')?.checked || false;
     const holidayMultiplier = state !== undefined ? state.holidayMultiplier : parseFloat(document.getElementById('holidayMultiplier').value) || 1;
@@ -32,9 +32,9 @@ function recomputeAndRender(state) {
     const topTagEl = document.getElementById('topTag');
     const avgDailyEl = document.getElementById('avgDaily');
 
-    const selectedTags = tagFilter?.items.length > 0 ? tagFilter.items : null;
+    const selectedTagsFilter = tagFilter?.items.length > 0 ? tagFilter.items : null;
     if (document.getElementById('debugMode')?.checked) {
-        console.debug('[recomputeAndRender] tagFilter.items:', JSON.stringify(tagFilter?.items), 'selectedTags:', JSON.stringify(selectedTags));
+        console.debug('[recomputeAndRender] tagFilter.items:', JSON.stringify(tagFilter?.items), 'selectedTags:', JSON.stringify(selectedTagsFilter));
         if (tagFilter) {
             console.debug('[recomputeAndRender] options:', tagFilter.options);
         }
@@ -44,8 +44,8 @@ function recomputeAndRender(state) {
         startDate,
         endDate,
         excludeBreaks,
-        specialTags,
-        selectedTags,
+        additionalSpecialTags: additionalSpecialTags,
+        selectedTagsFilter: selectedTagsFilter,
         roundToHalvesEnabled,
         debugMode,
         holidayMultiplier,
@@ -112,7 +112,7 @@ function recomputeAndRender(state) {
     avgDailyEl.textContent = `${displayAvgDaily.toFixed(1)} hours`;
 
     generateTableHeader(timeTable, new Set(), uniqueTags);
-    generateTableBody(timeTable.querySelector('tbody'), timeData, sessionsByDate, uniqueTags, specialTags, tagFilter || { items: [] }, CALENDAR_LOOKUP, HOLIDAY_LOCALE);
+    generateTableBody(timeTable.querySelector('tbody'), timeData, sessionsByDate, uniqueTags, additionalSpecialTags, tagFilter || { items: [] }, CALENDAR_LOOKUP, HOLIDAY_LOCALE);
     generateTagLegend(tagLegend, uniqueTags);
 
     tableContainer.classList.remove('hidden');

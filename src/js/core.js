@@ -426,25 +426,25 @@ export function processTimeDataLegacy(data, options = {}) {
     });
 }
 
-export function computeTimeData({ sessions, precomputedUniqueTags, allocationMap, startDate = '2000-01-01', endDate = '2099-12-31', excludeBreaks = false, roundToHalvesEnabled = false, restTimeMin = REST_TIME_MIN, debugMode = false, holidayMultiplier = 1, weekendMultiplier = 1, calendarLookup = null }) {
+export function computeTimeData({ sessions: rawSessionsForPeriod, precomputedUniqueTags, allocationMap, startDate = '2000-01-01', endDate = '2099-12-31', excludeBreaks = false, roundToHalvesEnabled = false, restTimeMin = REST_TIME_MIN, debugMode = false, holidayMultiplier = 1, weekendMultiplier = 1, calendarLookup = null }) {
     if (!precomputedUniqueTags) throw new Error('precomputedUniqueTags is required');
     if (!allocationMap) throw new Error('allocationMap is required');
 
     const { uniqueTags } = precomputedUniqueTags;
 
     const displaySessions = excludeBreaks
-        ? sessions.filter(s => !s.isBreak)
-        : sessions;
+        ? rawSessionsForPeriod.filter(s => !s.isBreak)
+        : rawSessionsForPeriod;
 
     if (debugMode) {
-        console.debug(`[computeTimeData] sessions=${sessions.length} (compute) display=${displaySessions.length} range=${startDate}..${endDate} excludeBreaks=${excludeBreaks} roundToHalves=${roundToHalvesEnabled} restTimeMin=${restTimeMin}`);
+        console.debug(`[computeTimeData] sessions=${rawSessionsForPeriod.length} (compute) display=${displaySessions.length} range=${startDate}..${endDate} excludeBreaks=${excludeBreaks} roundToHalves=${roundToHalvesEnabled} restTimeMin=${restTimeMin}`);
     }
 
     const sessionsByDate = buildSessionsByDate(displaySessions);
 
     const timeData = {};
 
-    handleOverlap(sessions, allocationMap, uniqueTags, timeData, roundToHalvesEnabled, debugMode);
+    handleOverlap(rawSessionsForPeriod, allocationMap, uniqueTags, timeData, roundToHalvesEnabled, debugMode);
 
     applyRestSpread(timeData, restTimeMin, debugMode);
     applyTimeMultipliers(timeData, holidayMultiplier, weekendMultiplier, calendarLookup);
