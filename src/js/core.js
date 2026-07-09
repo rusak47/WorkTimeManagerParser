@@ -2,7 +2,7 @@ import { roundToHalf, datediff, durationToSeconds } from './utils.js';
 import { DEFAULT_EXCLUDED_TAGS } from './data.js';
 
 const REST_TIME_MIN = 60;
-const REST_EXCLUDED_TAGS = ['#meet'];
+const REST_EXCLUDED_TAGS = ['#meet']; //keep this value const (rounding is ok); but dont split or add rest time 
 
 export function checkIsCorrectRecord(session) {
     const accumBreak = session.accumulatedPauseTimeSec ? session.accumulatedPauseTimeSec / 3600 : 0;
@@ -79,6 +79,15 @@ export function normalizeSessions(sessions) {
             }
         }
         session.isBreak = session.bucket === 'rest' || session.isBreak;
+
+        if (!checkIsCorrectRecord(session) && !session.isBreak) {
+            const accumBreak = session.accumulatedPauseTimeSec ? session.accumulatedPauseTimeSec / 3600 : 0;
+            const durationH = session.durationSec / 3600;
+            if (Math.abs(durationToSeconds(session.duration) - session.durationSec) < 60 && accumBreak > 0 && accumBreak <= durationH) {
+                session.durationSec = session.durationSec - session.accumulatedPauseTimeSec;
+            }
+        }
+
         return session;
     });
 }
@@ -130,147 +139,53 @@ export function resolveSessionAllocation(session, specialTags, uniqueTags) {
     return null;
 }
 
-export function computeTimeData(data, options = {}) {
-    const {
-        startDate = '2000-01-01',
-        endDate = '2099-12-31',
-        excludeBreaks = false,
-        specialTags = [],
-        selectedTags = null,
-        roundToHalvesEnabled = false,
-        restTimeMin = REST_TIME_MIN,
-        debugMode = false,
-        holidayMultiplier = 1,
-        weekendMultiplier = 1,
-        calendarLookup = null,
-        precomputedUniqueTags = null,
-    } = options;
+export function deriveMaxDaysTimeSplit(durationHours) {
+    if (durationHours <= 3) return 1;
+    return Math.floor(durationHours / 6) + 2;
+}
 
-    if (!data || !data.sessions || !Array.isArray(data.sessions)) {
-        return null;
+export function computeEffectiveEnd(startDate, endDate, durationHours) {
+    const endOfMonth = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth() + 1, 1));
+    let effective = endDate < endOfMonth ? endDate : endOfMonth;
+    const maxDays = deriveMaxDaysTimeSplit(durationHours);
+    const dayStart = new Date(startDate);
+    dayStart.setUTCHours(0, 0, 0, 0);
+    const cappedByDays = new Date(dayStart);
+    cappedByDays.setUTCDate(cappedByDays.getUTCDate() + maxDays);
+    return effective < cappedByDays ? effective : cappedByDays;
+}
+
+export function applyAllocation(entry, allocation, dayDuration) {
+    if (!allocation) return;
+    if (allocation.type === 'single') {
+        entry[allocation.tag] += dayDuration;
+    } else if (allocation.type === 'split') {
+        const share = dayDuration / allocation.tags.length;
+        allocation.tags.forEach(tag => { entry[tag] += share; });
     }
+}
 
-    const sessions = normalizeSessions(data.sessions);
-    const filteredSessions = filterSessions(sessions, { startDate, endDate, excludeBreaks: false });
-    const displaySessions = filterSessions(sessions, { startDate, endDate, excludeBreaks });
-
-    if (debugMode) {
-        console.debug(`[computeTimeData] sessions=${filteredSessions.length} (compute) display=${displaySessions.length} range=${startDate}..${endDate} excludeBreaks=${excludeBreaks} specialTags=${JSON.stringify(specialTags)} selectedTags=${JSON.stringify(selectedTags)} roundToHalves=${roundToHalvesEnabled} restTimeMin=${restTimeMin}`);
+export function dateEntry(timeData, dateStr, uniqueTags) {
+    if (!timeData[dateStr]) {
+        timeData[dateStr] = {};
+        uniqueTags.forEach(tag => { timeData[dateStr][tag] = 0; });
     }
+    return timeData[dateStr];
+}
 
-    function computeMaxDays(durationHours) {
-        if (durationHours <= 3) return 1;
-        return Math.floor(durationHours / 6) + 2;
-    }
-
-    function computeEffectiveEnd(start, end, durationHours) {
-        const endOfMonth = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1));
-        let effective = end < endOfMonth ? end : endOfMonth;
-
-        const maxDays = computeMaxDays(durationHours);
-        const dayStart = new Date(start);
-        dayStart.setUTCHours(0, 0, 0, 0);
-        const cappedByDays = new Date(dayStart);
-        cappedByDays.setUTCDate(cappedByDays.getUTCDate() + maxDays);
-
-        return effective < cappedByDays ? effective : cappedByDays;
-    }
-
-    const sessionsByDate = {};
-    displaySessions.forEach(session => {
-        const start = new Date(session.startTime);
-        const end = computeEffectiveEnd(start, new Date(session.endTime), session.durationSec / 3600);
-        const cursor = new Date(start);
-        cursor.setUTCHours(0, 0, 0, 0);
-        while (cursor < end) {
-            const dateStr = cursor.toISOString().split('T')[0];
-            if (!sessionsByDate[dateStr]) {
-                sessionsByDate[dateStr] = [];
+export function cleanupRound(timeData) {
+    Object.keys(timeData).forEach(date => {
+        Object.keys(timeData[date]).forEach(tag => {
+            if (timeData[date][tag] === 0 || isNaN(timeData[date][tag])) {
+                delete timeData[date][tag];
+            } else {
+                timeData[date][tag] = roundToHalf(timeData[date][tag]);
             }
-            sessionsByDate[dateStr].push(session);
-            cursor.setUTCDate(cursor.getUTCDate() + 1);
-        }
+        });
     });
+}
 
-    let uniqueTags, allTags, allSupportTags;
-    if (precomputedUniqueTags) {
-        ({ uniqueTags, allTags, allSupportTags } = precomputedUniqueTags);
-    } else {
-        ({ uniqueTags, allTags, allSupportTags } = deriveUniqueTags(filteredSessions, specialTags, selectedTags));
-    }
-    const allTagsArray = Array.from(allTags).concat(Array.from(allSupportTags));
-
-    const allocationMap = new Map();
-    filteredSessions.forEach(s => allocationMap.set(s, resolveSessionAllocation(s, specialTags, uniqueTags)));
-
-    function applyAllocation(entry, session, durationHours) {
-        const alloc = allocationMap.get(session);
-        if (!alloc) return;
-        if (alloc.type === 'single') {
-            entry[alloc.tag] += durationHours;
-        } else if (alloc.type === 'split') {
-            const share = durationHours / alloc.tags.length;
-            alloc.tags.forEach(tag => { entry[tag] += share; });
-        }
-    }
-
-    const timeData = {};
-
-    function dateEntry(dateStr) {
-        if (!timeData[dateStr]) {
-            timeData[dateStr] = {};
-            uniqueTags.forEach(tag => { timeData[dateStr][tag] = 0; });
-        }
-        return timeData[dateStr];
-    }
-
-    filteredSessions.forEach(session => {
-        const accumBreak = session.accumulatedPauseTimeSec ? session.accumulatedPauseTimeSec / 3600 : 0;
-        const durationHours_session = session.durationSec / 3600;
-        const is_correct_record = checkIsCorrectRecord(session);
-
-        let totalDurationHours = durationHours_session;
-        if (!is_correct_record) {
-            if (!session.isBreak) {
-                if (Math.abs(durationToSeconds(session.duration) - session.durationSec) < 60) {
-                    if (accumBreak <= durationHours_session) {
-                        totalDurationHours -= accumBreak;
-                    }
-                }
-            }
-        }
-
-        const start = new Date(session.startTime);
-        const end = computeEffectiveEnd(start, new Date(session.endTime), totalDurationHours);
-        const totalMs = end - start;
-        const dayCursor = new Date(start);
-        dayCursor.setUTCHours(0, 0, 0, 0);
-
-        while (dayCursor < end) {
-            const dayEnd = new Date(dayCursor);
-            dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
-
-            const overlapStart = start > dayCursor ? start : dayCursor;
-            const overlapEnd = end < dayEnd ? end : dayEnd;
-            const dayMs = overlapEnd - overlapStart;
-
-            if (dayMs > 0) {
-                const dateStr = dayCursor.toISOString().split('T')[0];
-                const proportion = dayMs / totalMs;
-                let dayDuration = totalDurationHours * proportion;
-                dayDuration = roundToHalvesEnabled ? roundToHalf(dayDuration) : dayDuration;
-
-                if (debugMode) {
-                    console.debug(`[computeTimeData]   date=${dateStr} id=${session.id} dayMs=${dayMs} totalMs=${totalMs} prop=${proportion.toFixed(4)} dur=${dayDuration.toFixed(4)}h${roundToHalvesEnabled ? ' (rounded)' : ''}`);
-                }
-
-                applyAllocation(dateEntry(dateStr), session, dayDuration);
-            }
-
-            dayCursor.setUTCDate(dayCursor.getUTCDate() + 1);
-        }
-    });
-
+export function applyRestSpread(timeData, restTimeMin, debugMode) {
     Object.keys(timeData).forEach(date => {
         const restEligible = {};
         const excludedNonRest = {};
@@ -314,17 +229,9 @@ export function computeTimeData(data, options = {}) {
             }
         }
     });
+}
 
-    Object.keys(timeData).forEach(date => {
-        Object.keys(timeData[date]).forEach(tag => {
-            if (timeData[date][tag] === 0 || isNaN(timeData[date][tag])) {
-                delete timeData[date][tag];
-            } else {
-                timeData[date][tag] = roundToHalf(timeData[date][tag]);
-            }
-        });
-    });
-
+export function applyTimeMultipliers(timeData, holidayMultiplier, weekendMultiplier, calendarLookup) {
     if (holidayMultiplier !== 1 || weekendMultiplier !== 1) {
         Object.keys(timeData).forEach(date => {
             const entry = calendarLookup?.[date];
@@ -341,27 +248,10 @@ export function computeTimeData(data, options = {}) {
                 }
             });
         });
-
-        Object.keys(timeData).forEach(date => {
-            Object.keys(timeData[date]).forEach(tag => {
-                if (timeData[date][tag] === 0 || isNaN(timeData[date][tag])) {
-                    delete timeData[date][tag];
-                } else {
-                    timeData[date][tag] = roundToHalf(timeData[date][tag]);
-                }
-            });
-        });
     }
+}
 
-    Object.keys(timeData).forEach(date => {
-        if (debugMode) {
-            const final = Object.fromEntries(
-                Object.entries(timeData[date]).filter(([_, v]) => v > 0)
-            );
-            console.debug(`[computeTimeData] ${date} FINAL: ${JSON.stringify(final)}`);
-        }
-    });
-
+export function computeStats(timeData, uniqueTags) {
     let totalHours = 0;
     const tagTotals = {};
     uniqueTags.forEach(tag => {
@@ -380,18 +270,171 @@ export function computeTimeData(data, options = {}) {
     const uniqueDates = Object.keys(timeData).length;
     const avgDailyHours = uniqueDates > 0 ? totalHours / uniqueDates : 0;
 
-    uniqueTags = uniqueTags.filter(tag => tagTotals[tag] > 0);
+    const filteredTags = uniqueTags.filter(tag => tagTotals[tag] > 0);
 
     let topTag = '-';
     let maxHours = 0;
-    uniqueTags.forEach(tag => {
+    filteredTags.forEach(tag => {
         if (tagTotals[tag] > maxHours) {
             maxHours = tagTotals[tag];
             topTag = tag;
         }
     });
 
-    // Ensure sessionsByDate has entries for all timeData dates
+    return { totalHours, tagTotals, avgDailyHours, topTag, topTagHours: maxHours };
+}
+
+export function processTimeDataLegacy(data, options = {}) {
+    const {
+        startDate = '2000-01-01',
+        endDate = '2099-12-31',
+        excludeBreaks = false,
+        specialTags = [],
+        selectedTags = null,
+        roundToHalvesEnabled = false,
+        restTimeMin = REST_TIME_MIN,
+        debugMode = false,
+        holidayMultiplier = 1,
+        weekendMultiplier = 1,
+        calendarLookup = null,
+    } = options;
+
+    if (!data || !data.sessions || !Array.isArray(data.sessions)) {
+        return null;
+    }
+
+    const sessions = normalizeSessions(data.sessions);
+    const filteredForTags = filterSessions(sessions, { startDate, endDate, excludeBreaks: false });
+    const { uniqueTags, allTags, allSupportTags } = deriveUniqueTags(filteredForTags, specialTags, selectedTags ?? []);
+
+    const allocationMap = new Map();
+    filteredForTags.forEach(s => allocationMap.set(s, resolveSessionAllocation(s, specialTags, uniqueTags)));
+
+    return computeTimeData({ sessions }, {
+        startDate, endDate, excludeBreaks, specialTags, selectedTags,
+        roundToHalvesEnabled, restTimeMin, debugMode,
+        holidayMultiplier, weekendMultiplier, calendarLookup,
+        precomputedUniqueTags: { uniqueTags, allTags, allSupportTags },
+        allocationMap,
+    });
+}
+
+export function computeTimeData(data, options = {}) {
+    const {
+        startDate = '2000-01-01',
+        endDate = '2099-12-31',
+        excludeBreaks = false,
+        specialTags = [],
+        selectedTags = null,
+        roundToHalvesEnabled = false,
+        restTimeMin = REST_TIME_MIN,
+        debugMode = false,
+        holidayMultiplier = 1,
+        weekendMultiplier = 1,
+        calendarLookup = null,
+        precomputedUniqueTags = null,
+        allocationMap = null,
+    } = options;
+
+    if (!data || !data.sessions || !Array.isArray(data.sessions)) {
+        return null;
+    }
+
+    const sessions = data.sessions;
+    const filteredSessions = filterSessions(sessions, { startDate, endDate, excludeBreaks: false });
+    const displaySessions = filterSessions(sessions, { startDate, endDate, excludeBreaks });
+
+    if (debugMode) {
+        console.debug(`[computeTimeData] sessions=${filteredSessions.length} (compute) display=${displaySessions.length} range=${startDate}..${endDate} excludeBreaks=${excludeBreaks} specialTags=${JSON.stringify(specialTags)} selectedTags=${JSON.stringify(selectedTags)} roundToHalves=${roundToHalvesEnabled} restTimeMin=${restTimeMin}`);
+    }
+
+    const sessionsByDate = {};
+    displaySessions.forEach(session => {
+        const start = new Date(session.startTime);
+        const end = computeEffectiveEnd(start, new Date(session.endTime), session.durationSec / 3600);
+        const cursor = new Date(start);
+        cursor.setUTCHours(0, 0, 0, 0);
+        while (cursor < end) {
+            const dateStr = cursor.toISOString().split('T')[0];
+            if (!sessionsByDate[dateStr]) {
+                sessionsByDate[dateStr] = [];
+            }
+            sessionsByDate[dateStr].push(session);
+            cursor.setUTCDate(cursor.getUTCDate() + 1);
+        }
+    });
+
+    let uniqueTags, allTags, allSupportTags;
+    //todo: only precomputedUniqueTags - if null -> throw error
+    if (precomputedUniqueTags) {
+        ({ uniqueTags, allTags, allSupportTags } = precomputedUniqueTags);
+    } else {
+        ({ uniqueTags, allTags, allSupportTags } = deriveUniqueTags(filteredSessions, specialTags, selectedTags));
+    }
+    const allTagsArray = Array.from(allTags).concat(Array.from(allSupportTags));
+
+    //todo: only allocationMap - if null -> throw error
+    const effectiveAllocationMap = allocationMap || new Map(
+        filteredSessions.map(s => [s, resolveSessionAllocation(s, specialTags, uniqueTags)])
+    );
+
+    const timeData = {};
+
+    //todo: extract into separate method handleOverlap
+    filteredSessions.forEach(session => {
+        const durationHours_session = session.durationSec / 3600;
+
+        if (durationHours_session <= 0) return;
+
+        const start = new Date(session.startTime);
+        const end = computeEffectiveEnd(start, new Date(session.endTime), durationHours_session);
+        const totalMs = end - start;
+        const dayCursor = new Date(start);
+        dayCursor.setUTCHours(0, 0, 0, 0);
+
+        while (dayCursor < end) {
+            const dayEnd = new Date(dayCursor);
+            dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
+
+            const overlapStart = start > dayCursor ? start : dayCursor;
+            const overlapEnd = end < dayEnd ? end : dayEnd;
+            const dayMs = overlapEnd - overlapStart;
+
+            if (dayMs > 0) {
+                const dateStr = dayCursor.toISOString().split('T')[0];
+                const proportion = dayMs / totalMs;
+                let dayDuration = durationHours_session * proportion;
+                dayDuration = roundToHalvesEnabled ? roundToHalf(dayDuration) : dayDuration;
+
+                if (debugMode) {
+                    console.debug(`[computeTimeData]   date=${dateStr} id=${session.id} dayMs=${dayMs} totalMs=${totalMs} prop=${proportion.toFixed(4)} dur=${dayDuration.toFixed(4)}h${roundToHalvesEnabled ? ' (rounded)' : ''}`);
+                }
+
+                const alloc = effectiveAllocationMap.get(session);
+                applyAllocation(dateEntry(timeData, dateStr, uniqueTags), alloc, dayDuration);
+            }
+
+            dayCursor.setUTCDate(dayCursor.getUTCDate() + 1);
+        }
+    });
+
+    applyRestSpread(timeData, restTimeMin, debugMode);
+    applyTimeMultipliers(timeData, holidayMultiplier, weekendMultiplier, calendarLookup);
+    cleanupRound(timeData);
+
+    if (debugMode) {
+        Object.keys(timeData).forEach(date => {
+            const final = Object.fromEntries(
+                Object.entries(timeData[date]).filter(([_, v]) => v > 0)
+            );
+            console.debug(`[computeTimeData] ${date} FINAL: ${JSON.stringify(final)}`);
+        });
+    }
+
+    const stats = computeStats(timeData, uniqueTags);
+
+    uniqueTags = uniqueTags.filter(tag => stats.tagTotals[tag] > 0);
+
     Object.keys(timeData).forEach(date => {
         if (!sessionsByDate[date]) {
             sessionsByDate[date] = [];
@@ -405,10 +448,10 @@ export function computeTimeData(data, options = {}) {
         allSupportTags,
         uniqueTags,
         timeData,
-        tagTotals,
-        totalHours,
-        avgDailyHours,
-        topTag,
-        topTagHours: maxHours,
+        tagTotals: stats.tagTotals,
+        totalHours: stats.totalHours,
+        avgDailyHours: stats.avgDailyHours,
+        topTag: stats.topTag,
+        topTagHours: stats.topTagHours,
     };
 }

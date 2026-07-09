@@ -1,6 +1,6 @@
 import { syncSpecialTags, generateTableHeader, generateTableBody, generateTagLegend } from './ui.js';
 import { roundToHalf, copyAndEmailTimeTable2, datediff, durationToSeconds } from './utils.js';
-import { computeTimeData, deriveUniqueTags, filterSessions } from './core.js';
+import { processTimeDataLegacy, deriveUniqueTags, filterSessions } from './core.js';
 import { DEFAULT_EXCLUDED_TAGS, sampleData } from './data.js';
 import holidaysRaw from '../holidays.json' with { type: 'json' };
 
@@ -22,8 +22,6 @@ function recomputeAndRender(state) {
     const debugMode = state !== undefined ? state.debugMode : document.getElementById('debugMode')?.checked || false;
     const holidayMultiplier = state !== undefined ? state.holidayMultiplier : parseFloat(document.getElementById('holidayMultiplier').value) || 1;
     const weekendMultiplier = state !== undefined ? state.weekendMultiplier : parseFloat(document.getElementById('weekendMultiplier').value) || 1;
-    const precomputedUniqueTags = state?.precomputedUniqueTags ?? null;
-
     const tagFilter = document.getElementById('tagFilter')?.tomselect;
     const tableContainer = document.getElementById('tableContainer');
     const statsContainer = document.getElementById('statsContainer');
@@ -42,7 +40,7 @@ function recomputeAndRender(state) {
         }
     }
 
-    const result = computeTimeData(currentData, {
+    const result = processTimeDataLegacy(currentData, {
         startDate,
         endDate,
         excludeBreaks,
@@ -53,7 +51,6 @@ function recomputeAndRender(state) {
         holidayMultiplier,
         weekendMultiplier,
         calendarLookup: CALENDAR_LOOKUP,
-        precomputedUniqueTags,
     });
 
     if (!result || Object.keys(result.timeData).length === 0) {

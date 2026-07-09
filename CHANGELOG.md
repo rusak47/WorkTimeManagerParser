@@ -3,10 +3,13 @@
 ## Unreleased
 
 ### Planned
-- **Tag extraction rearchitecture** — split tag discovery from time allocation; fix new-format bucket sessions to distribute time across project tags instead of dumping to `#custom` (3-phase plan in `tasks/new/tag-extraction-rearchitecture/`)
+- **Phase 2: Fix new-format bucket allocation** — implement `normalizeSessions`-era allocation logic so bucket sessions distribute time across project tags instead of dumping to `#custom`
+- **Phase 3: Consolidate notes-cell filter and cleanup** — remove dead code, consolidate filter paths
 
 ### Added
-- **Phase 1: Structural split** — extracted `deriveUniqueTags()` from `computeTimeData`; replaced inline tag extraction with `deriveUniqueTags` call in backward-compat path; `processData` now uses `deriveUniqueTags` for TomSelect population instead of inline `extractTags`; added `precomputedUniqueTags` option parameter
+- **Phase 1c: Pure computation core** — fully separated data preparation (`processTimeData`) from pure computation (`computeTimeData`). Extracted all helpers to module-level (`deriveMaxDaysTimeSplit`, `computeEffectiveEnd`, `applyAllocation`, `dateEntry`, `cleanupRound`, `applyRestSpread`, `applyTimeMultipliers`, `computeStats`, `computeSessionOverlap`). `processTimeData` normalizes, derives tags, builds allocation map, then delegates to `computeTimeData` for the pure computation pass. accumBreak subtraction moved into `normalizeSessions`. Single `cleanupRound` restored after rest spread (before multipliers). Tests converted from `computeTimeData` to `processTimeData`
+- **Phase 1b: Extract allocation** — extracted `normalizeSessions()` and `resolveSessionAllocation()`; replaced inline normalization and `allocateTime` with pre-computed allocation map; old `allocateTime` deleted
+- **Phase 1a: Structural split** — extracted `deriveUniqueTags()` from `computeTimeData`; replaced inline tag extraction with `deriveUniqueTags` call in backward-compat path; `processData` now uses `deriveUniqueTags` for TomSelect population instead of inline `extractTags`; added `precomputedUniqueTags` option parameter
 - **REST_EXCLUDED_TAGS** — `['#meet']` excluded from rest spread distribution so printed time matches original session duration. Orphaned rest routes to `#custom` when all non-rest tags are excluded (3f3b138)
 
 ### Fixed

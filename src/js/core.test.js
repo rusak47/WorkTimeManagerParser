@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeTimeData, filterSessions, extractTags, checkIsCorrectRecord, deriveUniqueTags, resolveSessionAllocation } from './core.js';
+import { computeTimeData, processTimeData, normalizeSessions, filterSessions, extractTags, checkIsCorrectRecord, deriveUniqueTags, resolveSessionAllocation } from './core.js';
 import { sampleData } from './data.js';
 import { roundToHalf, datediff, durationToSeconds } from './utils.js';
 
@@ -141,11 +141,12 @@ describe('deriveUniqueTags', () => {
     });
 
     it('accepts precomputedUniqueTags on computeTimeData', () => {
-        const sessions = filterSessions(sampleData.sessions, {
+        const normalized = normalizeSessions(sampleData.sessions);
+        const sessions = filterSessions(normalized, {
             startDate: '2026-07-01', endDate: '2026-07-03', excludeBreaks: false
         });
         const tagInfo = deriveUniqueTags(sessions, [], []);
-        const result = computeTimeData(sampleData, {
+        const result = computeTimeData({ sessions: normalized }, {
             startDate: '2026-07-01', endDate: '2026-07-03',
             precomputedUniqueTags: tagInfo,
         });
@@ -199,7 +200,7 @@ describe('computeTimeData', () => {
     });
 
     it('returns correct structure with sample data', () => {
-        const result = computeTimeData(sampleData, {
+        const result = processTimeData(sampleData, {
             startDate: '2025-06-16',
             endDate: '2025-06-18',
         });
@@ -214,7 +215,7 @@ describe('computeTimeData', () => {
     });
 
     it('groups sessions by date', () => {
-        const result = computeTimeData(sampleData, {
+        const result = processTimeData(sampleData, {
             startDate: '2025-06-16',
             endDate: '2025-06-18',
         });
@@ -225,7 +226,7 @@ describe('computeTimeData', () => {
     });
 
     it('reports the most active tag', () => {
-        const result = computeTimeData(sampleData, {
+        const result = processTimeData(sampleData, {
             startDate: '2025-06-16',
             endDate: '2025-06-18',
         });
@@ -235,7 +236,7 @@ describe('computeTimeData', () => {
     });
 
     it('excludes breaks when requested', () => {
-        const result = computeTimeData(sampleData, {
+        const result = processTimeData(sampleData, {
             startDate: '2025-06-16',
             endDate: '2025-06-18',
             excludeBreaks: true,
@@ -247,13 +248,13 @@ describe('computeTimeData', () => {
     });
 
     it('rounds to halves when enabled', () => {
-        const normal = computeTimeData(sampleData, {
+        const normal = processTimeData(sampleData, {
             startDate: '2025-06-16',
             endDate: '2025-06-18',
             roundToHalvesEnabled: false,
         });
 
-        const rounded = computeTimeData(sampleData, {
+        const rounded = processTimeData(sampleData, {
             startDate: '2025-06-16',
             endDate: '2025-06-18',
             roundToHalvesEnabled: true,
@@ -273,7 +274,7 @@ describe('computeTimeData', () => {
     });
 
     it('allocates via notes hashtag for normalized sessions', () => {
-        const result = computeTimeData(sampleData, {
+        const result = processTimeData(sampleData, {
             startDate: '2025-06-16',
             endDate: '2025-06-18',
             roundToHalvesEnabled: false,
@@ -284,7 +285,7 @@ describe('computeTimeData', () => {
     });
 
     it('spreads rest time across active tags', () => {
-        const result = computeTimeData(sampleData, {
+        const result = processTimeData(sampleData, {
             startDate: '2025-06-16',
             endDate: '2025-06-16',
             roundToHalvesEnabled: false,
@@ -296,7 +297,7 @@ describe('computeTimeData', () => {
     });
 
     it('extracts #hashtags from notes as tag columns', () => {
-        const result = computeTimeData(sampleData, {
+        const result = processTimeData(sampleData, {
             startDate: '2025-06-16',
             endDate: '2025-06-18',
         });
@@ -305,7 +306,7 @@ describe('computeTimeData', () => {
     });
 
     it('only includes tags present in the selected date range', () => {
-        const result = computeTimeData(sampleData, {
+        const result = processTimeData(sampleData, {
             startDate: '2025-06-18',
             endDate: '2025-06-18',
         });
@@ -316,7 +317,7 @@ describe('computeTimeData', () => {
     });
 
     it('handles empty sessions array', () => {
-        const result = computeTimeData({ sessions: [] }, {
+        const result = processTimeData({ sessions: [] }, {
             startDate: '2025-06-16',
             endDate: '2025-06-18',
         });
@@ -326,7 +327,7 @@ describe('computeTimeData', () => {
     });
 
     it('handles a single-day date range', () => {
-        const result = computeTimeData(sampleData, {
+        const result = processTimeData(sampleData, {
             startDate: '2025-06-18',
             endDate: '2025-06-18',
         });
@@ -336,7 +337,7 @@ describe('computeTimeData', () => {
     });
 
     it('excludes tags with zero time from timeData', () => {
-        const result = computeTimeData(sampleData, {
+        const result = processTimeData(sampleData, {
             startDate: '2025-06-18',
             endDate: '2025-06-18',
         });
@@ -349,7 +350,7 @@ describe('computeTimeData', () => {
     });
 
     it('correctly computes duration for session with break adjustment', () => {
-        const result = computeTimeData(sampleData, {
+        const result = processTimeData(sampleData, {
             startDate: '2025-06-16',
             endDate: '2025-06-16',
             roundToHalvesEnabled: false,
@@ -361,7 +362,7 @@ describe('computeTimeData', () => {
     });
 
     it('does not subtract accumulatedPauseTimeSec when it exceeds durationSec', () => {
-        const result = computeTimeData(sampleData, {
+        const result = processTimeData(sampleData, {
             startDate: '2026-04-06',
             endDate: '2026-04-06',
             roundToHalvesEnabled: false,
@@ -372,7 +373,7 @@ describe('computeTimeData', () => {
     });
 
     it('produces positive total for day with record where accumBreak > durationSec', () => {
-        const result = computeTimeData(sampleData, {
+        const result = processTimeData(sampleData, {
             startDate: '2026-04-06',
             endDate: '2026-04-06',
             roundToHalvesEnabled: false,
@@ -384,7 +385,7 @@ describe('computeTimeData', () => {
     });
 
     it('correctly adjusts duration when accumBreak is valid and smaller than duration', () => {
-        const result = computeTimeData(sampleData, {
+        const result = processTimeData(sampleData, {
             startDate: '2025-06-16',
             endDate: '2025-06-16',
             roundToHalvesEnabled: false,
@@ -398,7 +399,7 @@ describe('computeTimeData', () => {
     });
 
     it('places multi-day sessions in sessionsByDate for all calendar days spanned', () => {
-        const result = computeTimeData(sampleData, {
+        const result = processTimeData(sampleData, {
             startDate: '2026-02-11',
             endDate: '2026-02-12',
             roundToHalvesEnabled: false,
@@ -417,7 +418,7 @@ describe('computeTimeData', () => {
     });
 
     it('includes multi-day span dates in timeData', () => {
-        const result = computeTimeData(sampleData, {
+        const result = processTimeData(sampleData, {
             startDate: '2026-02-11',
             endDate: '2026-02-12',
             roundToHalvesEnabled: false,
@@ -431,7 +432,7 @@ describe('computeTimeData', () => {
         const data = { sessions: sampleData.sessions.filter(s =>
             s.id === 1772519253319 || s.id === 1772519243214
         ) };
-        const result = computeTimeData(data, {
+        const result = processTimeData(data, {
             startDate: '2026-02-27',
             endDate: '2026-03-03',
             roundToHalvesEnabled: false,
@@ -453,7 +454,7 @@ describe('computeTimeData', () => {
         const data = { sessions: sampleData.sessions.filter(s =>
             s.id === 1772519253319 || s.id === 1772519243214
         ) };
-        const result = computeTimeData(data, {
+        const result = processTimeData(data, {
             startDate: '2026-02-27',
             endDate: '2026-03-03',
             roundToHalvesEnabled: false,
@@ -473,7 +474,7 @@ describe('computeTimeData', () => {
         const data = { sessions: sampleData.sessions.filter(s =>
             s.id === 1772741779880
         ) };
-        const result = computeTimeData(data, {
+        const result = processTimeData(data, {
             startDate: '2026-03-03',
             endDate: '2026-03-05',
             roundToHalvesEnabled: false,
@@ -495,7 +496,7 @@ describe('computeTimeData', () => {
         const data = { sessions: sampleData.sessions.filter(s =>
             s.id === 1768808982081 || s.id === 1768808975201
         ) };
-        const result = computeTimeData(data, {
+        const result = processTimeData(data, {
             startDate: '2026-01-14',
             endDate: '2026-01-19',
             roundToHalvesEnabled: false,
@@ -514,7 +515,7 @@ describe('computeTimeData', () => {
         const data = { sessions: sampleData.sessions.filter(s =>
             s.id === 1768808982081 || s.id === 1768808975201
         ) };
-        const result = computeTimeData(data, {
+        const result = processTimeData(data, {
             startDate: '2026-01-14',
             endDate: '2026-01-19',
             roundToHalvesEnabled: false,
@@ -545,7 +546,7 @@ describe('computeTimeData', () => {
             `accumBreak=${s.accumulatedPauseTimeSec ?? 0}`
         ));
 
-        const result = computeTimeData(data, {
+        const result = processTimeData(data, {
             startDate: '2026-05-05',
             endDate: '2026-05-07',
             roundToHalvesEnabled: false,
@@ -659,7 +660,7 @@ describe('computeTimeData', () => {
         console.debug('MODE: roundToHalvesEnabled = false');
         console.debug('========================================');
 
-        const resultNoRound = computeTimeData(data, {
+        const resultNoRound = processTimeData(data, {
             startDate: '2026-05-05',
             endDate: '2026-05-07',
             roundToHalvesEnabled: false,
@@ -672,7 +673,7 @@ describe('computeTimeData', () => {
         console.debug('MODE: roundToHalvesEnabled = true');
         console.debug('========================================');
 
-        const resultRound = computeTimeData(data, {
+        const resultRound = processTimeData(data, {
             startDate: '2026-05-05',
             endDate: '2026-05-07',
             roundToHalvesEnabled: true,
@@ -784,7 +785,7 @@ describe('computeTimeData', () => {
             `id=${s.id} date=${s.date} durH=${(s.durationSec/3600).toFixed(4)} tags=[${s.tags}] notes="${s.notes}" isBreak=${s.isBreak} isCorrect=${s.is_correct_record}`
         ));
 
-        const result = computeTimeData(data, {
+        const result = processTimeData(data, {
             startDate: '2026-05-02',
             endDate: '2026-05-02',
             roundToHalvesEnabled: false,
@@ -820,13 +821,13 @@ describe('holidayMultiplier', () => {
         const data = { sessions: sampleData.sessions.filter(s =>
             s.id === 1775546932683 || s.id === 1750080766942 || s.id === 1750080766941
         ) };
-        const normal = computeTimeData(data, {
+        const normal = processTimeData(data, {
             startDate: '2026-04-06',
             endDate: '2026-04-06',
             holidayMultiplier: 1,
             calendarLookup,
         });
-        const doubled = computeTimeData(data, {
+        const doubled = processTimeData(data, {
             startDate: '2026-04-06',
             endDate: '2026-04-06',
             holidayMultiplier: 2,
@@ -847,7 +848,7 @@ describe('holidayMultiplier', () => {
         const data = { sessions: sampleData.sessions.filter(s =>
             s.id === 1775546932683
         ) };
-        const result = computeTimeData(data, {
+        const result = processTimeData(data, {
             startDate: '2026-04-06',
             endDate: '2026-04-06',
             holidayMultiplier: 5,
@@ -861,13 +862,13 @@ describe('holidayMultiplier', () => {
         const data = { sessions: sampleData.sessions.filter(s =>
             s.id === 1772524320233
         ) };
-        const normal = computeTimeData(data, {
+        const normal = processTimeData(data, {
             startDate: '2026-03-03',
             endDate: '2026-03-03',
             holidayMultiplier: 1,
             calendarLookup,
         });
-        const multiplied = computeTimeData(data, {
+        const multiplied = processTimeData(data, {
             startDate: '2026-03-03',
             endDate: '2026-03-03',
             holidayMultiplier: 3,
@@ -883,14 +884,14 @@ describe('holidayMultiplier', () => {
         const data = { sessions: sampleData.sessions.filter(s =>
             s.id === 1775546932683
         ) };
-        const holiday2 = computeTimeData(data, {
+        const holiday2 = processTimeData(data, {
             startDate: '2026-04-06',
             endDate: '2026-04-06',
             holidayMultiplier: 2,
             weekendMultiplier: 5,
             calendarLookup,
         });
-        const holidayOnly = computeTimeData(data, {
+        const holidayOnly = processTimeData(data, {
             startDate: '2026-04-06',
             endDate: '2026-04-06',
             holidayMultiplier: 2,
@@ -909,12 +910,12 @@ describe('weekendMultiplier', () => {
         const data = { sessions: sampleData.sessions.filter(s =>
             s.id === 1777753879976
         ) };
-        const normal = computeTimeData(data, {
+        const normal = processTimeData(data, {
             startDate: '2026-05-02',
             endDate: '2026-05-02',
             weekendMultiplier: 1,
         });
-        const doubled = computeTimeData(data, {
+        const doubled = processTimeData(data, {
             startDate: '2026-05-02',
             endDate: '2026-05-02',
             weekendMultiplier: 2,
@@ -937,13 +938,13 @@ describe('weekendMultiplier', () => {
         const data = { sessions: sampleData.sessions.filter(s =>
             s.id === 1768808982081
         ) };
-        const normal = computeTimeData(data, {
+        const normal = processTimeData(data, {
             startDate: '2026-01-17',
             endDate: '2026-01-17',
             weekendMultiplier: 1,
             calendarLookup,
         });
-        const multiplied = computeTimeData(data, {
+        const multiplied = processTimeData(data, {
             startDate: '2026-01-17',
             endDate: '2026-01-17',
             weekendMultiplier: 3,
@@ -963,7 +964,7 @@ describe('restExcludedTags', () => {
             sessions: sampleData.sessions.filter(s => ids.includes(s.id)),
         };
 
-        const result = computeTimeData(data, {
+        const result = processTimeData(data, {
             startDate: '2026-06-02',
             endDate: '2026-06-02',
             debugMode: true,
@@ -1003,7 +1004,7 @@ describe('restExcludedTags', () => {
         console.debug('  carry-over = totalDurationHours × (1 - prop)');
         console.debug('');
 
-        const result = computeTimeData(data, {
+        const result = processTimeData(data, {
             startDate: '2026-06-04',
             endDate: '2026-06-06',
             debugMode: true,
@@ -1051,7 +1052,7 @@ describe('restExcludedTags', () => {
 
 describe('computeTimeData with selectedTags', () => {
     it('returns only selected tag columns when selectedTags is set', () => {
-        const result = computeTimeData(sampleData, {
+        const result = processTimeData(sampleData, {
             startDate: '2026-06-26',
             endDate: '2026-06-26',
             excludeBreaks: false,
@@ -1064,7 +1065,7 @@ describe('computeTimeData with selectedTags', () => {
     });
 
     it('returns all tag columns when selectedTags is empty', () => {
-        const result = computeTimeData(sampleData, {
+        const result = processTimeData(sampleData, {
             startDate: '2026-06-26',
             endDate: '2026-06-26',
             excludeBreaks: false,
@@ -1091,7 +1092,7 @@ describe('multi-tag sessions without hashtag', () => {
             tags: ['work', 'projectA', 'projectB'],
             isBreak: false,
         }];
-        const result = computeTimeData(
+        const result = processTimeData(
             { sessions },
             { startDate: '2026-07-01', endDate: '2026-07-01' }
         );
@@ -1122,7 +1123,7 @@ describe('normalize migrated-no-bucket sessions', () => {
             accumulatedPauseTimeSec: 60894,
             isBreak: false,
         }];
-        const result = computeTimeData(
+        const result = processTimeData(
             { sessions },
             { startDate: '2026-07-01', endDate: '2026-07-01' }
         );
@@ -1147,7 +1148,7 @@ describe('normalize migrated-no-bucket sessions', () => {
             accumulatedPauseTimeSec: 100,
             isBreak: false,
         }];
-        const result = computeTimeData(
+        const result = processTimeData(
             { sessions },
             { startDate: '2026-07-01', endDate: '2026-07-01' }
         );
@@ -1169,7 +1170,7 @@ describe('normalize migrated-no-bucket sessions', () => {
             tags: ['work', 'paylar', '4203'],  // >1 tags but NO accumulatedPauseTimeSec
             isBreak: false,
         }];
-        const result = computeTimeData(
+        const result = processTimeData(
             { sessions },
             { startDate: '2026-07-01', endDate: '2026-07-01' }
         );
@@ -1195,7 +1196,7 @@ describe('normalize migrated-no-bucket sessions', () => {
             accumulatedPauseTimeSec: 0,
             isBreak: false,
         }];
-        const result = computeTimeData(
+        const result = processTimeData(
             { sessions },
             { startDate: '2026-07-01', endDate: '2026-07-01' }
         );
@@ -1220,7 +1221,7 @@ describe('bucket tag allocation', () => {
             bucket: 'work',
             isBreak: false,
         }];
-        const result = computeTimeData(
+        const result = processTimeData(
             { sessions },
             { startDate: '2026-07-06', endDate: '2026-07-06' }
         );
@@ -1236,7 +1237,7 @@ describe('bucket tag allocation', () => {
 });
 
     it('allocates time to session tag when notes hashtag is outside selectedTags', () => {
-        const result = computeTimeData(sampleData, {
+        const result = processTimeData(sampleData, {
             startDate: '2026-06-26',
             endDate: '2026-06-26',
             excludeBreaks: false,
@@ -1248,7 +1249,7 @@ describe('bucket tag allocation', () => {
     });
 
     it('returns all tag columns when selectedTags is null', () => {
-        const result = computeTimeData(sampleData, {
+        const result = processTimeData(sampleData, {
             startDate: '2026-06-26',
             endDate: '2026-06-26',
             excludeBreaks: false,
