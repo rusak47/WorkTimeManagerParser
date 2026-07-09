@@ -146,9 +146,12 @@ describe('deriveUniqueTags', () => {
             startDate: '2026-07-01', endDate: '2026-07-03', excludeBreaks: false
         });
         const tagInfo = deriveUniqueTags(sessions, [], []);
+        const allocationMap = new Map();
+        sessions.forEach(s => allocationMap.set(s, resolveSessionAllocation(s, [], tagInfo.uniqueTags)));
         const result = computeTimeData({ sessions: normalized }, {
             startDate: '2026-07-01', endDate: '2026-07-03',
             precomputedUniqueTags: tagInfo,
+            allocationMap,
         });
         expect(result).not.toBeNull();
         expect(Array.isArray(result.uniqueTags)).toBe(true);

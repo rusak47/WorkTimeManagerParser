@@ -329,37 +329,9 @@ export function processTimeDataLegacy(data, options = {}) {
     });
 }
 
-export function computeTimeData(data, options = {}) {
-    const {
-        startDate = '2000-01-01',
-        endDate = '2099-12-31',
-        excludeBreaks = false,
-        specialTags = [],
-        selectedTags = null,
-        roundToHalvesEnabled = false,
-        restTimeMin = REST_TIME_MIN,
-        debugMode = false,
-        holidayMultiplier = 1,
-        weekendMultiplier = 1,
-        calendarLookup = null,
-        precomputedUniqueTags = null,
-        allocationMap = null,
-    } = options;
-
-    if (!data || !data.sessions || !Array.isArray(data.sessions)) {
-        return null;
-    }
-
-    const sessions = data.sessions;
-    const filteredSessions = filterSessions(sessions, { startDate, endDate, excludeBreaks: false });
-    const displaySessions = filterSessions(sessions, { startDate, endDate, excludeBreaks });
-
-    if (debugMode) {
-        console.debug(`[computeTimeData] sessions=${filteredSessions.length} (compute) display=${displaySessions.length} range=${startDate}..${endDate} excludeBreaks=${excludeBreaks} specialTags=${JSON.stringify(specialTags)} selectedTags=${JSON.stringify(selectedTags)} roundToHalves=${roundToHalvesEnabled} restTimeMin=${restTimeMin}`);
-    }
-
+function buildSessionsByDate(sessions) {
     const sessionsByDate = {};
-    displaySessions.forEach(session => {
+    sessions.forEach(session => {
         const start = new Date(session.startTime);
         const end = computeEffectiveEnd(start, new Date(session.endTime), session.durationSec / 3600);
         const cursor = new Date(start);
@@ -373,22 +345,10 @@ export function computeTimeData(data, options = {}) {
             cursor.setUTCDate(cursor.getUTCDate() + 1);
         }
     });
+    return sessionsByDate;
+}
 
-    let uniqueTags, allTags, allSupportTags;
-    //todo: only precomputedUniqueTags - if null -> throw error
-    if (precomputedUniqueTags) {
-        ({ uniqueTags, allTags, allSupportTags } = precomputedUniqueTags);
-    } else {
-        ({ uniqueTags, allTags, allSupportTags } = deriveUniqueTags(filteredSessions, specialTags, selectedTags));
-    }
-    //todo: only allocationMap - if null -> throw error
-    const effectiveAllocationMap = allocationMap || new Map(
-        filteredSessions.map(s => [s, resolveSessionAllocation(s, specialTags, uniqueTags)])
-    );
-
-    const timeData = {};
-
-    //todo: extract into separate method handleOverlap
+function handleOverlap(filteredSessions, effectiveAllocationMap, uniqueTags, timeData, roundToHalvesEnabled, debugMode) {
     filteredSessions.forEach(session => {
         const durationHours_session = session.durationSec / 3600;
 
@@ -425,6 +385,48 @@ export function computeTimeData(data, options = {}) {
             dayCursor.setUTCDate(dayCursor.getUTCDate() + 1);
         }
     });
+}
+
+export function computeTimeData(data, options = {}) {
+    const {
+        startDate = '2000-01-01',
+        endDate = '2099-12-31',
+        excludeBreaks = false,
+        specialTags = [],
+        selectedTags = null,
+        roundToHalvesEnabled = false,
+        restTimeMin = REST_TIME_MIN,
+        debugMode = false,
+        holidayMultiplier = 1,
+        weekendMultiplier = 1,
+        calendarLookup = null,
+        precomputedUniqueTags,
+        allocationMap,
+    } = options;
+
+    if (!data || !data.sessions || !Array.isArray(data.sessions)) {
+        return null;
+    }
+
+    const sessions = data.sessions;
+    const filteredSessions = filterSessions(sessions, { startDate, endDate, excludeBreaks: false });
+    const displaySessions = filterSessions(sessions, { startDate, endDate, excludeBreaks });
+
+    if (debugMode) {
+        console.debug(`[computeTimeData] sessions=${filteredSessions.length} (compute) display=${displaySessions.length} range=${startDate}..${endDate} excludeBreaks=${excludeBreaks} specialTags=${JSON.stringify(specialTags)} selectedTags=${JSON.stringify(selectedTags)} roundToHalves=${roundToHalvesEnabled} restTimeMin=${restTimeMin}`);
+    }
+
+    if (!precomputedUniqueTags) throw new Error('precomputedUniqueTags is required');
+    if (!allocationMap) throw new Error('allocationMap is required');
+
+    const sessionsByDate = buildSessionsByDate(displaySessions);
+
+    const { uniqueTags } = precomputedUniqueTags;
+    const effectiveAllocationMap = allocationMap;
+
+    const timeData = {};
+
+    handleOverlap(filteredSessions, effectiveAllocationMap, uniqueTags, timeData, roundToHalvesEnabled, debugMode);
 
     applyRestSpread(timeData, restTimeMin, debugMode);
     applyTimeMultipliers(timeData, holidayMultiplier, weekendMultiplier, calendarLookup);
@@ -445,17 +447,5 @@ export function computeTimeData(data, options = {}) {
         }
     });
 
-    return {
-        //filteredSessions,
-        sessionsByDate, //all.js
-        //allTagsArray,
-        //allSupportTags,
-        uniqueTags, //all.js
-        timeData,  //all.js
-        //tagTotals: stats.tagTotals,
-        //totalHours: stats.totalHours,
-        //avgDailyHours: stats.avgDailyHours,
-        //topTag: stats.topTag,
-        //topTagHours: stats.topTagHours,
-    };
+    return { sessionsByDate, uniqueTags, timeData };
 }
