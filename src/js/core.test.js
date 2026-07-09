@@ -148,10 +148,11 @@ describe('deriveUniqueTags', () => {
         const tagInfo = deriveUniqueTags(sessions, [], []);
         const allocationMap = new Map();
         sessions.forEach(s => allocationMap.set(s, resolveSessionAllocation(s, [], tagInfo.uniqueTags)));
-        const result = computeTimeData({ sessions: normalized }, {
-            startDate: '2026-07-01', endDate: '2026-07-03',
+        const result = computeTimeData({
+            sessions,
             precomputedUniqueTags: tagInfo,
             allocationMap,
+            startDate: '2026-07-01', endDate: '2026-07-03',
         });
         expect(result).not.toBeNull();
         expect(Array.isArray(result.uniqueTags)).toBe(true);
@@ -197,11 +198,6 @@ describe('resolveSessionAllocation', () => {
 });
 
 describe('computeTimeData', () => {
-    it('returns null for invalid data', () => {
-        expect(computeTimeData(null)).toBeNull();
-        expect(computeTimeData({})).toBeNull();
-    });
-
     it('returns correct structure with sample data', () => {
         const result = processTimeDataLegacy(sampleData, {
             startDate: '2025-06-16',

@@ -1,9 +1,11 @@
 import { roundToHalf, datediff, durationToSeconds } from './utils.js';
-import { DEFAULT_EXCLUDED_TAGS } from './data.js';
+import { REST_TIME_MIN, DEFAULT_EXCLUDED_TAGS as DEFAULT_NOSUPPORT_TAGS, REST_EXCLUDED_TAGS } from './data.js';
 
-const REST_TIME_MIN = 60;
-const REST_EXCLUDED_TAGS = ['#meet']; //keep this value const (rounding is ok); but dont split or add rest time 
-
+/**
+ * Assume session correct when calculated duration is same as derived
+ * @param {*} session 
+ * @returns 
+ */
 export function checkIsCorrectRecord(session) {
     const accumBreak = session.accumulatedPauseTimeSec ? session.accumulatedPauseTimeSec / 3600 : 0;
     const durationHoursSession = session.durationSec / 3600;
@@ -24,6 +26,17 @@ export function filterSessions(sessions, { startDate, endDate, excludeBreaks }) 
     });
 }
 
+/**
+ * Extract all tags from
+ *  - session tags list,
+ *  - session notes:
+ *    - special tags if any,
+ *    - custom hash tags: split into support and not support
+ *    - redmine hash tags 
+ * @param {*} sessions 
+ * @param {*} specialTags 
+ * @returns 
+ */
 export function extractTags(sessions, specialTags) {
     const allTags = new Set(['#custom']);
     const allSupportTags = new Set();
@@ -42,7 +55,7 @@ export function extractTags(sessions, specialTags) {
 
             const hashtagsCustom = session.notes.match(/#[a-zA-Z]+[a-zA-Z0-9]{0,}/) || [];
             hashtagsCustom.forEach(tag => {
-                if (DEFAULT_EXCLUDED_TAGS.includes(tag.toLowerCase())) {
+                if (DEFAULT_NOSUPPORT_TAGS.includes(tag.toLowerCase())) {
                     allTags.add(tag);
                 } else {
                     allSupportTags.add(tag.toLowerCase());
@@ -155,7 +168,14 @@ export function computeEffectiveEnd(startDate, endDate, durationHours) {
     return effective < cappedByDays ? effective : cappedByDays;
 }
 
-export function applyAllocation(entry, allocation, dayDuration) {
+/**
+ * Based on allocation time add or split dayDuration to entry tags
+ * @param {*} entry 
+ * @param {*} allocation type: single or split
+ * @param {*} dayDuration 
+ * @returns 
+ */
+export function applyDurationAllocation(entry, allocation, dayDuration) {
     if (!allocation) return;
     if (allocation.type === 'single') {
         entry[allocation.tag] += dayDuration;
@@ -165,7 +185,15 @@ export function applyAllocation(entry, allocation, dayDuration) {
     }
 }
 
-export function dateEntry(timeData, dateStr, uniqueTags) {
+/**
+ * 
+ * @param {*} timeData 
+ * @param {*} dateStr 
+ * @param {*} uniqueTags 
+ * 
+ * @returns allocated tag-hours for date from timeData
+ */
+export function getDateEntryTags(timeData, dateStr, uniqueTags) {
     if (!timeData[dateStr]) {
         timeData[dateStr] = {};
         uniqueTags.forEach(tag => { timeData[dateStr][tag] = 0; });
@@ -294,41 +322,6 @@ export function computeStats(timeData, uniqueTags) {
     return { totalHours, tagTotals, avgDailyHours, topTag, topTagHours: maxHours };
 }
 
-export function processTimeDataLegacy(data, options = {}) {
-    const {
-        startDate = '2000-01-01',
-        endDate = '2099-12-31',
-        excludeBreaks = false,
-        specialTags = [],
-        selectedTags = null,
-        roundToHalvesEnabled = false,
-        restTimeMin = REST_TIME_MIN,
-        debugMode = false,
-        holidayMultiplier = 1,
-        weekendMultiplier = 1,
-        calendarLookup = null,
-    } = options;
-
-    if (!data || !data.sessions || !Array.isArray(data.sessions)) {
-        return null;
-    }
-
-    const sessions = normalizeSessions(data.sessions);
-    const filteredForTags = filterSessions(sessions, { startDate, endDate, excludeBreaks: false });
-    const { uniqueTags, allTags, allSupportTags } = deriveUniqueTags(filteredForTags, specialTags, selectedTags ?? []);
-
-    const allocationMap = new Map();
-    filteredForTags.forEach(s => allocationMap.set(s, resolveSessionAllocation(s, specialTags, uniqueTags)));
-
-    return computeTimeData({ sessions }, {
-        startDate, endDate, excludeBreaks, specialTags, selectedTags,
-        roundToHalvesEnabled, restTimeMin, debugMode,
-        holidayMultiplier, weekendMultiplier, calendarLookup,
-        precomputedUniqueTags: { uniqueTags, allTags, allSupportTags },
-        allocationMap,
-    });
-}
-
 function buildSessionsByDate(sessions) {
     const sessionsByDate = {};
     sessions.forEach(session => {
@@ -348,6 +341,16 @@ function buildSessionsByDate(sessions) {
     return sessionsByDate;
 }
 
+/**
+ * If some sessions duration spans across multiple days, then distribute time accordingly
+ * 
+ * @param {*} filteredSessions 
+ * @param {*} effectiveAllocationMap 
+ * @param {*} uniqueTags 
+ * @param {*} timeData 
+ * @param {*} roundToHalvesEnabled 
+ * @param {*} debugMode 
+ */
 function handleOverlap(filteredSessions, effectiveAllocationMap, uniqueTags, timeData, roundToHalvesEnabled, debugMode) {
     filteredSessions.forEach(session => {
         const durationHours_session = session.durationSec / 3600;
@@ -379,7 +382,7 @@ function handleOverlap(filteredSessions, effectiveAllocationMap, uniqueTags, tim
                 }
 
                 const alloc = effectiveAllocationMap.get(session);
-                applyAllocation(dateEntry(timeData, dateStr, uniqueTags), alloc, dayDuration);
+                applyDurationAllocation(getDateEntryTags(timeData, dateStr, uniqueTags), alloc, dayDuration);
             }
 
             dayCursor.setUTCDate(dayCursor.getUTCDate() + 1);
@@ -387,46 +390,61 @@ function handleOverlap(filteredSessions, effectiveAllocationMap, uniqueTags, tim
     });
 }
 
-export function computeTimeData(data, options = {}) {
+export function processTimeDataLegacy(data, options = {}) {
     const {
         startDate = '2000-01-01',
         endDate = '2099-12-31',
         excludeBreaks = false,
-        specialTags = [],
-        selectedTags = null,
+        specialTags: additionalSpecialTags = [],
+        selectedTags: selectedTagsFilter = null,
         roundToHalvesEnabled = false,
         restTimeMin = REST_TIME_MIN,
         debugMode = false,
         holidayMultiplier = 1,
         weekendMultiplier = 1,
         calendarLookup = null,
-        precomputedUniqueTags,
-        allocationMap,
     } = options;
 
     if (!data || !data.sessions || !Array.isArray(data.sessions)) {
         return null;
     }
 
-    const sessions = data.sessions;
-    const filteredSessions = filterSessions(sessions, { startDate, endDate, excludeBreaks: false });
-    const displaySessions = filterSessions(sessions, { startDate, endDate, excludeBreaks });
+    const sessions = normalizeSessions(data.sessions);
+    const computeSessions = filterSessions(sessions, { startDate, endDate, excludeBreaks: false });
+    const { uniqueTags, allTags, allSupportTags } = deriveUniqueTags(computeSessions, additionalSpecialTags, selectedTagsFilter ?? []);
 
-    if (debugMode) {
-        console.debug(`[computeTimeData] sessions=${filteredSessions.length} (compute) display=${displaySessions.length} range=${startDate}..${endDate} excludeBreaks=${excludeBreaks} specialTags=${JSON.stringify(specialTags)} selectedTags=${JSON.stringify(selectedTags)} roundToHalves=${roundToHalvesEnabled} restTimeMin=${restTimeMin}`);
-    }
+    const allocationMap = new Map();
+    computeSessions.forEach(s => allocationMap.set(s, resolveSessionAllocation(s, additionalSpecialTags, uniqueTags)));
 
+    return computeTimeData({
+        sessions: computeSessions,
+        precomputedUniqueTags: { uniqueTags, allTags, allSupportTags },
+        allocationMap,
+        excludeBreaks, startDate, endDate,
+        roundToHalvesEnabled, restTimeMin, debugMode,
+        holidayMultiplier, weekendMultiplier, calendarLookup,
+    });
+}
+
+export function computeTimeData({ sessions, precomputedUniqueTags, allocationMap, startDate = '2000-01-01', endDate = '2099-12-31', excludeBreaks = false, roundToHalvesEnabled = false, restTimeMin = REST_TIME_MIN, debugMode = false, holidayMultiplier = 1, weekendMultiplier = 1, calendarLookup = null }) {
     if (!precomputedUniqueTags) throw new Error('precomputedUniqueTags is required');
     if (!allocationMap) throw new Error('allocationMap is required');
 
-    const sessionsByDate = buildSessionsByDate(displaySessions);
-
     const { uniqueTags } = precomputedUniqueTags;
-    const effectiveAllocationMap = allocationMap;
+
+    const displaySessions = excludeBreaks
+        ? sessions.filter(s => !s.isBreak)
+        : sessions;
+
+    if (debugMode) {
+        console.debug(`[computeTimeData] sessions=${sessions.length} (compute) display=${displaySessions.length} range=${startDate}..${endDate} excludeBreaks=${excludeBreaks} roundToHalves=${roundToHalvesEnabled} restTimeMin=${restTimeMin}`);
+    }
+
+    const sessionsByDate = buildSessionsByDate(displaySessions);
 
     const timeData = {};
 
-    handleOverlap(filteredSessions, effectiveAllocationMap, uniqueTags, timeData, roundToHalvesEnabled, debugMode);
+    handleOverlap(sessions, allocationMap, uniqueTags, timeData, roundToHalvesEnabled, debugMode);
 
     applyRestSpread(timeData, restTimeMin, debugMode);
     applyTimeMultipliers(timeData, holidayMultiplier, weekendMultiplier, calendarLookup);
