@@ -178,8 +178,6 @@ export function cleanupRound(timeData) {
         Object.keys(timeData[date]).forEach(tag => {
             if (timeData[date][tag] === 0 || isNaN(timeData[date][tag])) {
                 delete timeData[date][tag];
-            } else {
-                timeData[date][tag] = roundToHalf(timeData[date][tag]);
             }
         });
     });
@@ -228,6 +226,11 @@ export function applyRestSpread(timeData, restTimeMin, debugMode) {
                 console.debug(`[computeTimeData] ${date}: restCount=0 (no spread)  values=${JSON.stringify(preRest)}`);
             }
         }
+
+        //normalize small values
+        Object.keys(timeData[date]).forEach(tag => {
+            timeData[date][tag] = roundToHalf(timeData[date][tag]);
+        });
     });
 }
 
@@ -246,6 +249,13 @@ export function applyTimeMultipliers(timeData, holidayMultiplier, weekendMultipl
                 } else if (isWeekend && entry?.type !== 'swapped_workday' && weekendMultiplier !== 1) {
                     timeData[date][tag] *= weekendMultiplier;
                 }
+            });
+        });
+
+        //normalize small values
+        Object.keys(timeData).forEach(date => {
+            Object.keys(timeData[date]).forEach(tag => {
+                timeData[date][tag] = roundToHalf(timeData[date][tag]);
             });
         });
     }
@@ -371,8 +381,6 @@ export function computeTimeData(data, options = {}) {
     } else {
         ({ uniqueTags, allTags, allSupportTags } = deriveUniqueTags(filteredSessions, specialTags, selectedTags));
     }
-    const allTagsArray = Array.from(allTags).concat(Array.from(allSupportTags));
-
     //todo: only allocationMap - if null -> throw error
     const effectiveAllocationMap = allocationMap || new Map(
         filteredSessions.map(s => [s, resolveSessionAllocation(s, specialTags, uniqueTags)])
@@ -431,10 +439,6 @@ export function computeTimeData(data, options = {}) {
         });
     }
 
-    const stats = computeStats(timeData, uniqueTags);
-
-    uniqueTags = uniqueTags.filter(tag => stats.tagTotals[tag] > 0);
-
     Object.keys(timeData).forEach(date => {
         if (!sessionsByDate[date]) {
             sessionsByDate[date] = [];
@@ -442,16 +446,16 @@ export function computeTimeData(data, options = {}) {
     });
 
     return {
-        filteredSessions,
-        sessionsByDate,
-        allTagsArray,
-        allSupportTags,
-        uniqueTags,
-        timeData,
-        tagTotals: stats.tagTotals,
-        totalHours: stats.totalHours,
-        avgDailyHours: stats.avgDailyHours,
-        topTag: stats.topTag,
-        topTagHours: stats.topTagHours,
+        //filteredSessions,
+        sessionsByDate, //all.js
+        //allTagsArray,
+        //allSupportTags,
+        uniqueTags, //all.js
+        timeData,  //all.js
+        //tagTotals: stats.tagTotals,
+        //totalHours: stats.totalHours,
+        //avgDailyHours: stats.avgDailyHours,
+        //topTag: stats.topTag,
+        //topTagHours: stats.topTagHours,
     };
 }

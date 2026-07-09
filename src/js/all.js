@@ -1,6 +1,6 @@
 import { syncSpecialTags, generateTableHeader, generateTableBody, generateTagLegend } from './ui.js';
 import { roundToHalf, copyAndEmailTimeTable2, datediff, durationToSeconds } from './utils.js';
-import { processTimeDataLegacy, deriveUniqueTags, filterSessions } from './core.js';
+import { processTimeDataLegacy, deriveUniqueTags, filterSessions, computeStats } from './core.js';
 import { DEFAULT_EXCLUDED_TAGS, sampleData } from './data.js';
 import holidaysRaw from '../holidays.json' with { type: 'json' };
 
@@ -58,6 +58,9 @@ function recomputeAndRender(state) {
     }
 
     let { uniqueTags, timeData, sessionsByDate } = result;
+
+    const { tagTotals: totalByTag } = computeStats(timeData, uniqueTags);
+    uniqueTags = uniqueTags.filter(tag => totalByTag[tag] > 0);
 
     if (excludeBreaks) {
         const restIdx = uniqueTags.indexOf('rest');

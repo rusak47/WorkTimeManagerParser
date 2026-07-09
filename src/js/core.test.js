@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeTimeData, processTimeData, normalizeSessions, filterSessions, extractTags, checkIsCorrectRecord, deriveUniqueTags, resolveSessionAllocation } from './core.js';
+import { computeTimeData, processTimeDataLegacy, computeStats, normalizeSessions, filterSessions, extractTags, checkIsCorrectRecord, deriveUniqueTags, resolveSessionAllocation } from './core.js';
 import { sampleData } from './data.js';
 import { roundToHalf, datediff, durationToSeconds } from './utils.js';
 
@@ -200,22 +200,22 @@ describe('computeTimeData', () => {
     });
 
     it('returns correct structure with sample data', () => {
-        const result = processTimeData(sampleData, {
+        const result = processTimeDataLegacy(sampleData, {
             startDate: '2025-06-16',
             endDate: '2025-06-18',
         });
 
         expect(result).not.toBeNull();
-        expect(result.filteredSessions).toHaveLength(7);
         // 'meeting' is stripped by normalization (session has accumulatedPauseTimeSec + >1 tags)
         expect(result.uniqueTags).not.toContain('meeting');
-        expect(result.uniqueTags).not.toContain('work');
-        expect(result.totalHours).toBeGreaterThan(0);
-        expect(result.avgDailyHours).toBeGreaterThan(0);
+        expect(result.uniqueTags).toContain('work');
+        const stats = computeStats(result.timeData, result.uniqueTags);
+        expect(stats.totalHours).toBeGreaterThan(0);
+        expect(stats.avgDailyHours).toBeGreaterThan(0);
     });
 
     it('groups sessions by date', () => {
-        const result = processTimeData(sampleData, {
+        const result = processTimeDataLegacy(sampleData, {
             startDate: '2025-06-16',
             endDate: '2025-06-18',
         });
@@ -226,17 +226,18 @@ describe('computeTimeData', () => {
     });
 
     it('reports the most active tag', () => {
-        const result = processTimeData(sampleData, {
+        const result = processTimeDataLegacy(sampleData, {
             startDate: '2025-06-16',
             endDate: '2025-06-18',
         });
 
-        expect(result.topTag).toBe('#1234');
-        expect(result.topTagHours).toBeGreaterThan(0);
+        const stats = computeStats(result.timeData, result.uniqueTags);
+        expect(stats.topTag).toBe('#1234');
+        expect(stats.topTagHours).toBeGreaterThan(0);
     });
 
     it('excludes breaks when requested', () => {
-        const result = processTimeData(sampleData, {
+        const result = processTimeDataLegacy(sampleData, {
             startDate: '2025-06-16',
             endDate: '2025-06-18',
             excludeBreaks: true,
@@ -248,13 +249,13 @@ describe('computeTimeData', () => {
     });
 
     it('rounds to halves when enabled', () => {
-        const normal = processTimeData(sampleData, {
+        const normal = processTimeDataLegacy(sampleData, {
             startDate: '2025-06-16',
             endDate: '2025-06-18',
             roundToHalvesEnabled: false,
         });
 
-        const rounded = processTimeData(sampleData, {
+        const rounded = processTimeDataLegacy(sampleData, {
             startDate: '2025-06-16',
             endDate: '2025-06-18',
             roundToHalvesEnabled: true,
@@ -274,7 +275,7 @@ describe('computeTimeData', () => {
     });
 
     it('allocates via notes hashtag for normalized sessions', () => {
-        const result = processTimeData(sampleData, {
+        const result = processTimeDataLegacy(sampleData, {
             startDate: '2025-06-16',
             endDate: '2025-06-18',
             roundToHalvesEnabled: false,
@@ -285,7 +286,7 @@ describe('computeTimeData', () => {
     });
 
     it('spreads rest time across active tags', () => {
-        const result = processTimeData(sampleData, {
+        const result = processTimeDataLegacy(sampleData, {
             startDate: '2025-06-16',
             endDate: '2025-06-16',
             roundToHalvesEnabled: false,
@@ -297,7 +298,7 @@ describe('computeTimeData', () => {
     });
 
     it('extracts #hashtags from notes as tag columns', () => {
-        const result = processTimeData(sampleData, {
+        const result = processTimeDataLegacy(sampleData, {
             startDate: '2025-06-16',
             endDate: '2025-06-18',
         });
@@ -306,7 +307,7 @@ describe('computeTimeData', () => {
     });
 
     it('only includes tags present in the selected date range', () => {
-        const result = processTimeData(sampleData, {
+        const result = processTimeDataLegacy(sampleData, {
             startDate: '2025-06-18',
             endDate: '2025-06-18',
         });
@@ -317,27 +318,29 @@ describe('computeTimeData', () => {
     });
 
     it('handles empty sessions array', () => {
-        const result = processTimeData({ sessions: [] }, {
+        const result = processTimeDataLegacy({ sessions: [] }, {
             startDate: '2025-06-16',
             endDate: '2025-06-18',
         });
 
         expect(result).not.toBeNull();
-        expect(result.totalHours).toBe(0);
+        const stats = computeStats(result.timeData, result.uniqueTags);
+        expect(stats.totalHours).toBe(0);
     });
 
     it('handles a single-day date range', () => {
-        const result = processTimeData(sampleData, {
+        const result = processTimeDataLegacy(sampleData, {
             startDate: '2025-06-18',
             endDate: '2025-06-18',
         });
 
         expect(Object.keys(result.sessionsByDate)).toHaveLength(1);
-        expect(result.avgDailyHours).toBe(result.totalHours);
+        const stats = computeStats(result.timeData, result.uniqueTags);
+        expect(stats.avgDailyHours).toBe(stats.totalHours);
     });
 
     it('excludes tags with zero time from timeData', () => {
-        const result = processTimeData(sampleData, {
+        const result = processTimeDataLegacy(sampleData, {
             startDate: '2025-06-18',
             endDate: '2025-06-18',
         });
@@ -350,7 +353,7 @@ describe('computeTimeData', () => {
     });
 
     it('correctly computes duration for session with break adjustment', () => {
-        const result = processTimeData(sampleData, {
+        const result = processTimeDataLegacy(sampleData, {
             startDate: '2025-06-16',
             endDate: '2025-06-16',
             roundToHalvesEnabled: false,
@@ -362,7 +365,7 @@ describe('computeTimeData', () => {
     });
 
     it('does not subtract accumulatedPauseTimeSec when it exceeds durationSec', () => {
-        const result = processTimeData(sampleData, {
+        const result = processTimeDataLegacy(sampleData, {
             startDate: '2026-04-06',
             endDate: '2026-04-06',
             roundToHalvesEnabled: false,
@@ -373,7 +376,7 @@ describe('computeTimeData', () => {
     });
 
     it('produces positive total for day with record where accumBreak > durationSec', () => {
-        const result = processTimeData(sampleData, {
+        const result = processTimeDataLegacy(sampleData, {
             startDate: '2026-04-06',
             endDate: '2026-04-06',
             roundToHalvesEnabled: false,
@@ -385,7 +388,7 @@ describe('computeTimeData', () => {
     });
 
     it('correctly adjusts duration when accumBreak is valid and smaller than duration', () => {
-        const result = processTimeData(sampleData, {
+        const result = processTimeDataLegacy(sampleData, {
             startDate: '2025-06-16',
             endDate: '2025-06-16',
             roundToHalvesEnabled: false,
@@ -399,7 +402,7 @@ describe('computeTimeData', () => {
     });
 
     it('places multi-day sessions in sessionsByDate for all calendar days spanned', () => {
-        const result = processTimeData(sampleData, {
+        const result = processTimeDataLegacy(sampleData, {
             startDate: '2026-02-11',
             endDate: '2026-02-12',
             roundToHalvesEnabled: false,
@@ -418,7 +421,7 @@ describe('computeTimeData', () => {
     });
 
     it('includes multi-day span dates in timeData', () => {
-        const result = processTimeData(sampleData, {
+        const result = processTimeDataLegacy(sampleData, {
             startDate: '2026-02-11',
             endDate: '2026-02-12',
             roundToHalvesEnabled: false,
@@ -432,7 +435,7 @@ describe('computeTimeData', () => {
         const data = { sessions: sampleData.sessions.filter(s =>
             s.id === 1772519253319 || s.id === 1772519243214
         ) };
-        const result = processTimeData(data, {
+        const result = processTimeDataLegacy(data, {
             startDate: '2026-02-27',
             endDate: '2026-03-03',
             roundToHalvesEnabled: false,
@@ -454,7 +457,7 @@ describe('computeTimeData', () => {
         const data = { sessions: sampleData.sessions.filter(s =>
             s.id === 1772519253319 || s.id === 1772519243214
         ) };
-        const result = processTimeData(data, {
+        const result = processTimeDataLegacy(data, {
             startDate: '2026-02-27',
             endDate: '2026-03-03',
             roundToHalvesEnabled: false,
@@ -474,7 +477,7 @@ describe('computeTimeData', () => {
         const data = { sessions: sampleData.sessions.filter(s =>
             s.id === 1772741779880
         ) };
-        const result = processTimeData(data, {
+        const result = processTimeDataLegacy(data, {
             startDate: '2026-03-03',
             endDate: '2026-03-05',
             roundToHalvesEnabled: false,
@@ -496,7 +499,7 @@ describe('computeTimeData', () => {
         const data = { sessions: sampleData.sessions.filter(s =>
             s.id === 1768808982081 || s.id === 1768808975201
         ) };
-        const result = processTimeData(data, {
+        const result = processTimeDataLegacy(data, {
             startDate: '2026-01-14',
             endDate: '2026-01-19',
             roundToHalvesEnabled: false,
@@ -515,7 +518,7 @@ describe('computeTimeData', () => {
         const data = { sessions: sampleData.sessions.filter(s =>
             s.id === 1768808982081 || s.id === 1768808975201
         ) };
-        const result = processTimeData(data, {
+        const result = processTimeDataLegacy(data, {
             startDate: '2026-01-14',
             endDate: '2026-01-19',
             roundToHalvesEnabled: false,
@@ -546,7 +549,7 @@ describe('computeTimeData', () => {
             `accumBreak=${s.accumulatedPauseTimeSec ?? 0}`
         ));
 
-        const result = processTimeData(data, {
+        const result = processTimeDataLegacy(data, {
             startDate: '2026-05-05',
             endDate: '2026-05-07',
             roundToHalvesEnabled: false,
@@ -569,12 +572,13 @@ describe('computeTimeData', () => {
             console.debug(`${date}: [${entries.join(', ')}] total=${total.toFixed(4)}h`);
         });
 
+        const resultStats = computeStats(result.timeData, result.uniqueTags);
         console.debug('\n=== tagTotals ===');
-        Object.entries(result.tagTotals).sort().forEach(([tag, h]) => {
-            if (h > 0) console.debug(`${tag}: ${h.toFixed(4)}h`);
+        Object.entries(resultStats.tagTotals).sort().forEach(([t, h]) => {
+            if (h > 0) console.debug(`${t}: ${h.toFixed(4)}h`);
         });
 
-        console.debug(`\ntotalHours=${result.totalHours.toFixed(4)}h`);
+        console.debug(`\ntotalHours=${resultStats.totalHours.toFixed(4)}h`);
 
         expect(result).not.toBeNull();
         expect(result.sessionsByDate['2026-05-05']).toBeDefined();
@@ -660,7 +664,7 @@ describe('computeTimeData', () => {
         console.debug('MODE: roundToHalvesEnabled = false');
         console.debug('========================================');
 
-        const resultNoRound = processTimeData(data, {
+        const resultNoRound = processTimeDataLegacy(data, {
             startDate: '2026-05-05',
             endDate: '2026-05-07',
             roundToHalvesEnabled: false,
@@ -673,7 +677,7 @@ describe('computeTimeData', () => {
         console.debug('MODE: roundToHalvesEnabled = true');
         console.debug('========================================');
 
-        const resultRound = processTimeData(data, {
+        const resultRound = processTimeDataLegacy(data, {
             startDate: '2026-05-05',
             endDate: '2026-05-07',
             roundToHalvesEnabled: true,
@@ -705,8 +709,9 @@ describe('computeTimeData', () => {
                 console.debug(`  ${d} ${t}: ${v}`);
             });
         });
+        const ttNoRound = computeStats(resultNoRound.timeData, resultNoRound.uniqueTags);
         console.debug('tagTotals no round:');
-        Object.entries(resultNoRound.tagTotals).sort().forEach(([t, v]) => console.debug(`  ${t}: ${v}`));
+        Object.entries(ttNoRound.tagTotals).sort().forEach(([t, v]) => console.debug(`  ${t}: ${v}`));
 
         const d5_r = resultRound.timeData['2026-05-05'];
         const d6_r = resultRound.timeData['2026-05-06'];
@@ -718,8 +723,9 @@ describe('computeTimeData', () => {
                 console.debug(`  ${d} ${t}: ${v}`);
             });
         });
+        const ttRound = computeStats(resultRound.timeData, resultRound.uniqueTags);
         console.debug('tagTotals round:');
-        Object.entries(resultRound.tagTotals).sort().forEach(([t, v]) => console.debug(`  ${t}: ${v}`));
+        Object.entries(ttRound.tagTotals).sort().forEach(([t, v]) => console.debug(`  ${t}: ${v}`));
 
         expect(d5_nr['#4182']).toBe(2.5);
         expect(d5_nr['#meet']).toBe(0.5);
@@ -731,10 +737,10 @@ describe('computeTimeData', () => {
         expect(d7_nr['#4182']).toBe(4.5);
         expect(d7_nr['rest']).toBe(16.5);
 
-        const tt_nr = resultNoRound.tagTotals;
-        expect(tt_nr['#4182']).toBeCloseTo(11.5, 4);
-        expect(tt_nr['#meet']).toBe(0.5);
-        expect(tt_nr['rest']).toBeCloseTo(43.5, 4);
+        const statsNoRound = computeStats(resultNoRound.timeData, resultNoRound.uniqueTags);
+        expect(statsNoRound.tagTotals['#4182']).toBeCloseTo(11.5, 4);
+        expect(statsNoRound.tagTotals['#meet']).toBe(0.5);
+        expect(statsNoRound.tagTotals['rest']).toBeCloseTo(43.5, 4);
 
         // --- Mode: per-session rounding enabled ---
 
@@ -747,9 +753,9 @@ describe('computeTimeData', () => {
         expect(d7_r['#4182']).toBe(4.5);
         expect(d7_r['rest']).toBe(17);
 
-        const tt_r = resultRound.tagTotals;
-        expect(tt_r['#4182']).toBeCloseTo(12.0, 4);
-        expect(tt_r['rest']).toBeCloseTo(45.5, 4);
+        const statsRound = computeStats(resultRound.timeData, resultRound.uniqueTags);
+        expect(statsRound.tagTotals['#4182']).toBeCloseTo(12.0, 4);
+        expect(statsRound.tagTotals['rest']).toBeCloseTo(45.5, 4);
 
         console.debug('\n=== UI display (toFixed(1)) ===');
         console.debug('  Mode: no per-session rounding');
@@ -785,7 +791,7 @@ describe('computeTimeData', () => {
             `id=${s.id} date=${s.date} durH=${(s.durationSec/3600).toFixed(4)} tags=[${s.tags}] notes="${s.notes}" isBreak=${s.isBreak} isCorrect=${s.is_correct_record}`
         ));
 
-        const result = processTimeData(data, {
+        const result = processTimeDataLegacy(data, {
             startDate: '2026-05-02',
             endDate: '2026-05-02',
             roundToHalvesEnabled: false,
@@ -802,11 +808,12 @@ describe('computeTimeData', () => {
         console.debug('\n=== uniqueTags ===');
         console.debug(result.uniqueTags);
 
+        const traceStats = computeStats(result.timeData, result.uniqueTags);
         console.debug('\n=== tagTotals ===');
-        Object.entries(result.tagTotals).forEach(([t, v]) => console.debug(`  ${t}: ${v.toFixed(4)}`));
+        Object.entries(traceStats.tagTotals).forEach(([t, v]) => console.debug(`  ${t}: ${v.toFixed(4)}`));
 
         // Work session is ~5.5h, plus rest spread of 1h = ~6.5h
-        console.debug(`\ntotalHours=${result.totalHours.toFixed(4)}h`);
+        console.debug(`\ntotalHours=${traceStats.totalHours.toFixed(4)}h`);
 
         expect(result).not.toBeNull();
     });
@@ -821,13 +828,13 @@ describe('holidayMultiplier', () => {
         const data = { sessions: sampleData.sessions.filter(s =>
             s.id === 1775546932683 || s.id === 1750080766942 || s.id === 1750080766941
         ) };
-        const normal = processTimeData(data, {
+        const normal = processTimeDataLegacy(data, {
             startDate: '2026-04-06',
             endDate: '2026-04-06',
             holidayMultiplier: 1,
             calendarLookup,
         });
-        const doubled = processTimeData(data, {
+        const doubled = processTimeDataLegacy(data, {
             startDate: '2026-04-06',
             endDate: '2026-04-06',
             holidayMultiplier: 2,
@@ -848,7 +855,7 @@ describe('holidayMultiplier', () => {
         const data = { sessions: sampleData.sessions.filter(s =>
             s.id === 1775546932683
         ) };
-        const result = processTimeData(data, {
+        const result = processTimeDataLegacy(data, {
             startDate: '2026-04-06',
             endDate: '2026-04-06',
             holidayMultiplier: 5,
@@ -862,13 +869,13 @@ describe('holidayMultiplier', () => {
         const data = { sessions: sampleData.sessions.filter(s =>
             s.id === 1772524320233
         ) };
-        const normal = processTimeData(data, {
+        const normal = processTimeDataLegacy(data, {
             startDate: '2026-03-03',
             endDate: '2026-03-03',
             holidayMultiplier: 1,
             calendarLookup,
         });
-        const multiplied = processTimeData(data, {
+        const multiplied = processTimeDataLegacy(data, {
             startDate: '2026-03-03',
             endDate: '2026-03-03',
             holidayMultiplier: 3,
@@ -884,14 +891,14 @@ describe('holidayMultiplier', () => {
         const data = { sessions: sampleData.sessions.filter(s =>
             s.id === 1775546932683
         ) };
-        const holiday2 = processTimeData(data, {
+        const holiday2 = processTimeDataLegacy(data, {
             startDate: '2026-04-06',
             endDate: '2026-04-06',
             holidayMultiplier: 2,
             weekendMultiplier: 5,
             calendarLookup,
         });
-        const holidayOnly = processTimeData(data, {
+        const holidayOnly = processTimeDataLegacy(data, {
             startDate: '2026-04-06',
             endDate: '2026-04-06',
             holidayMultiplier: 2,
@@ -910,12 +917,12 @@ describe('weekendMultiplier', () => {
         const data = { sessions: sampleData.sessions.filter(s =>
             s.id === 1777753879976
         ) };
-        const normal = processTimeData(data, {
+        const normal = processTimeDataLegacy(data, {
             startDate: '2026-05-02',
             endDate: '2026-05-02',
             weekendMultiplier: 1,
         });
-        const doubled = processTimeData(data, {
+        const doubled = processTimeDataLegacy(data, {
             startDate: '2026-05-02',
             endDate: '2026-05-02',
             weekendMultiplier: 2,
@@ -938,13 +945,13 @@ describe('weekendMultiplier', () => {
         const data = { sessions: sampleData.sessions.filter(s =>
             s.id === 1768808982081
         ) };
-        const normal = processTimeData(data, {
+        const normal = processTimeDataLegacy(data, {
             startDate: '2026-01-17',
             endDate: '2026-01-17',
             weekendMultiplier: 1,
             calendarLookup,
         });
-        const multiplied = processTimeData(data, {
+        const multiplied = processTimeDataLegacy(data, {
             startDate: '2026-01-17',
             endDate: '2026-01-17',
             weekendMultiplier: 3,
@@ -964,7 +971,7 @@ describe('restExcludedTags', () => {
             sessions: sampleData.sessions.filter(s => ids.includes(s.id)),
         };
 
-        const result = processTimeData(data, {
+        const result = processTimeDataLegacy(data, {
             startDate: '2026-06-02',
             endDate: '2026-06-02',
             debugMode: true,
@@ -1004,7 +1011,7 @@ describe('restExcludedTags', () => {
         console.debug('  carry-over = totalDurationHours × (1 - prop)');
         console.debug('');
 
-        const result = processTimeData(data, {
+        const result = processTimeDataLegacy(data, {
             startDate: '2026-06-04',
             endDate: '2026-06-06',
             debugMode: true,
@@ -1030,8 +1037,9 @@ describe('restExcludedTags', () => {
             console.debug(`    total: ${total.toFixed(1)}h`);
         });
 
+        const junStats = computeStats(result.timeData, result.uniqueTags);
         console.debug('\n========== STEP 6: GRAND TOTALS ==========');
-        Object.entries(result.tagTotals).sort().forEach(([t, v]) => {
+        Object.entries(junStats.tagTotals).sort().forEach(([t, v]) => {
             if (v > 0) console.debug(`  ${t}: ${v.toFixed(4)}h`);
         });
 
@@ -1052,7 +1060,7 @@ describe('restExcludedTags', () => {
 
 describe('computeTimeData with selectedTags', () => {
     it('returns only selected tag columns when selectedTags is set', () => {
-        const result = processTimeData(sampleData, {
+        const result = processTimeDataLegacy(sampleData, {
             startDate: '2026-06-26',
             endDate: '2026-06-26',
             excludeBreaks: false,
@@ -1065,7 +1073,7 @@ describe('computeTimeData with selectedTags', () => {
     });
 
     it('returns all tag columns when selectedTags is empty', () => {
-        const result = processTimeData(sampleData, {
+        const result = processTimeDataLegacy(sampleData, {
             startDate: '2026-06-26',
             endDate: '2026-06-26',
             excludeBreaks: false,
@@ -1092,19 +1100,20 @@ describe('multi-tag sessions without hashtag', () => {
             tags: ['work', 'projectA', 'projectB'],
             isBreak: false,
         }];
-        const result = processTimeData(
+        const result = processTimeDataLegacy(
             { sessions },
             { startDate: '2026-07-01', endDate: '2026-07-01' }
         );
         // 2h split across 3 tags → 0.667h each, +0.333h rest spread → 1.0h each
         // Without fix: each tag gets 2h + 0.333h rest spread → 2.5h each → totalHours=7.5h
-        const workTags = result.uniqueTags.filter(t => t !== 'rest');
+        const statsMT = computeStats(result.timeData, result.uniqueTags);
+        const workTags = result.uniqueTags.filter(t => t !== 'rest' && statsMT.tagTotals[t] > 0);
         expect(workTags.length).toBe(3);
         workTags.forEach(tag => {
-            expect(result.tagTotals[tag]).toBe(1.0);
+            expect(statsMT.tagTotals[tag]).toBe(1.0);
         });
         // totalHours = 3 + rest spread total (rest was distributed, no explicit rest tag here)
-        expect(result.totalHours).toBe(3.0);
+        expect(statsMT.totalHours).toBe(3.0);
     });
 });
 
@@ -1123,15 +1132,16 @@ describe('normalize migrated-no-bucket sessions', () => {
             accumulatedPauseTimeSec: 60894,
             isBreak: false,
         }];
-        const result = processTimeData(
+        const result = processTimeDataLegacy(
             { sessions },
             { startDate: '2026-07-01', endDate: '2026-07-01' }
         );
+        const statsN1 = computeStats(result.timeData, result.uniqueTags);
         // Normalized: #4203 in notes numeric hashtag gets 2h + 1h rest spread = 3.0
-        expect(result.tagTotals['#4203']).toBe(3.0);
+        expect(statsN1.tagTotals['#4203']).toBe(3.0);
         // #custom stays 0 — never allocated (time routed via notes hashtag)
-        expect(result.tagTotals['#custom']).toBe(0);
-        expect(result.totalHours).toBe(3.0);
+        expect(statsN1.tagTotals['#custom']).toBe(0);
+        expect(statsN1.totalHours).toBe(3.0);
     });
 
     it('does not normalize sessions with single tag', () => {
@@ -1148,13 +1158,14 @@ describe('normalize migrated-no-bucket sessions', () => {
             accumulatedPauseTimeSec: 100,
             isBreak: false,
         }];
-        const result = processTimeData(
+        const result = processTimeDataLegacy(
             { sessions },
             { startDate: '2026-07-01', endDate: '2026-07-01' }
         );
+        const statsN2 = computeStats(result.timeData, result.uniqueTags);
         // Single tag 'work' → #custom gets full time = 2h + 1h rest = 3.0
-        expect(result.tagTotals['#custom']).toBe(3.0);
-        expect(result.totalHours).toBe(3.0);
+        expect(statsN2.tagTotals['#custom']).toBe(3.0);
+        expect(statsN2.totalHours).toBe(3.0);
     });
 
     it('does not normalize sessions without accumulatedPauseTimeSec', () => {
@@ -1170,16 +1181,17 @@ describe('normalize migrated-no-bucket sessions', () => {
             tags: ['work', 'paylar', '4203'],  // >1 tags but NO accumulatedPauseTimeSec
             isBreak: false,
         }];
-        const result = processTimeData(
+        const result = processTimeDataLegacy(
             { sessions },
             { startDate: '2026-07-01', endDate: '2026-07-01' }
         );
+        const statsN3 = computeStats(result.timeData, result.uniqueTags);
         // Without normalization: 3 tags (work→#custom, paylar, 4203) split 2h/3 each ≈ 0.67h
         // Each gets ~0.67 + 0.33 rest = ~1.0 (after roundToHalf)
-        expect(result.tagTotals['#custom']).toBe(1.0);
-        expect(result.tagTotals['paylar']).toBe(1.0);
-        expect(result.tagTotals['4203']).toBe(1.0);
-        expect(result.totalHours).toBe(3.0);
+        expect(statsN3.tagTotals['#custom']).toBe(1.0);
+        expect(statsN3.tagTotals['paylar']).toBe(1.0);
+        expect(statsN3.tagTotals['4203']).toBe(1.0);
+        expect(statsN3.totalHours).toBe(3.0);
     });
 
     it('normalizes sessions with accumulatedPauseTimeSec: 0 and >1 tags', () => {
@@ -1196,13 +1208,14 @@ describe('normalize migrated-no-bucket sessions', () => {
             accumulatedPauseTimeSec: 0,
             isBreak: false,
         }];
-        const result = processTimeData(
+        const result = processTimeDataLegacy(
             { sessions },
             { startDate: '2026-07-01', endDate: '2026-07-01' }
         );
+        const statsN4 = computeStats(result.timeData, result.uniqueTags);
         // Normalized: #paylar gets 2h via notes hashtag + 1h rest = 3.0
-        expect(result.tagTotals['#paylar']).toBe(3.0);
-        expect(result.totalHours).toBe(3.0);
+        expect(statsN4.tagTotals['#paylar']).toBe(3.0);
+        expect(statsN4.totalHours).toBe(3.0);
     });
 });
 
@@ -1221,23 +1234,24 @@ describe('bucket tag allocation', () => {
             bucket: 'work',
             isBreak: false,
         }];
-        const result = processTimeData(
+        const result = processTimeDataLegacy(
             { sessions },
             { startDate: '2026-07-06', endDate: '2026-07-06' }
         );
         // bucket=work → maps to #custom, full 2h. Only #custom has time, so
         // restCount=1 → +1.0h rest → roundToHalf(3.0) = 3.0
-        expect(result.tagTotals['#custom']).toBe(3.0);
+        const statsBucket = computeStats(result.timeData, result.uniqueTags);
+        expect(statsBucket.tagTotals['#custom']).toBe(3.0);
         // other tags get 0 time (not eligible for rest spread since they have no time)
-        expect(result.tagTotals['projectA']).toBe(0);
-        expect(result.tagTotals['projectB']).toBe(0);
-        expect(result.tagTotals['projectC']).toBe(0);
-        expect(result.totalHours).toBe(3.0);
+        expect(statsBucket.tagTotals['projectA']).toBe(0);
+        expect(statsBucket.tagTotals['projectB']).toBe(0);
+        expect(statsBucket.tagTotals['projectC']).toBe(0);
+        expect(statsBucket.totalHours).toBe(3.0);
     });
 });
 
     it('allocates time to session tag when notes hashtag is outside selectedTags', () => {
-        const result = processTimeData(sampleData, {
+        const result = processTimeDataLegacy(sampleData, {
             startDate: '2026-06-26',
             endDate: '2026-06-26',
             excludeBreaks: false,
@@ -1249,7 +1263,7 @@ describe('bucket tag allocation', () => {
     });
 
     it('returns all tag columns when selectedTags is null', () => {
-        const result = processTimeData(sampleData, {
+        const result = processTimeDataLegacy(sampleData, {
             startDate: '2026-06-26',
             endDate: '2026-06-26',
             excludeBreaks: false,
