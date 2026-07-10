@@ -7,4 +7,4 @@
 - [ ] Tag extraction rearchitecture (master plan: `tasks/new/tag-extraction-rearchitecture/README.md`)
   - [x] Phase 1: Structural split + allocation extraction + pure computation core (specs: `tasks/done/tag-extraction-rearchitecture/`)
   - [x] Phase 2: Fix new-format bucket allocation (spec: `tasks/done/tag-extraction-rearchitecture/phase-2-fix-bucket-allocation.md`)
-  - [ ] Phase 3: Consolidate notes-cell filter and cleanup (spec: `tasks/new/tag-extraction-rearchitecture/phase-3-consolidate-and-cleanup.md`)
+  - [x] Phase 3: Consolidate notes-cell filter and cleanup — **rejected** — work already absorbed by Phases 1-2; last item (getNotesHashtags cleanup) was pure refactor with no value (spec: `tasks/rejected/tag-extraction-rearchitecture/phase-3-consolidate-and-cleanup.md`)

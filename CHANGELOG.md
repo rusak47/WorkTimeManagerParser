@@ -2,8 +2,8 @@
 
 ## Unreleased
 
-### Planned
-- **Phase 3: Consolidate notes-cell filter and cleanup** — remove dead code, consolidate filter paths
+### Cancelled
+- **Phase 3: Consolidate notes-cell filter and cleanup** — rejected: Items 2-4 already done by Phases 1-2; last item (getNotesHashtags) was pure refactor not worth the risk
 
 ### Added
 - **Phase 2: Fix new-format bucket allocation** — replaced legacy bucket shortcut with priority-based allocation (rest → specialTag → redmine split → revision split → custom first-match → `#custom`). New-format sessions (`session.bucket`) now distribute time across matching project tags instead of dumping everything to `#custom`. Redmine (`^\d+$`) and revision (`^r\d+$`) tags split time evenly; custom tags use first-match-wins. Tags returned bare (no `#` prefix) matching `uniqueTags` format. Import alias `DEFAULT_NOTSUPPORT_TAGS` renamed from `DEFAULT_EXCLUDED_TAGS`. 4 new bucket allocation tests (72 total).

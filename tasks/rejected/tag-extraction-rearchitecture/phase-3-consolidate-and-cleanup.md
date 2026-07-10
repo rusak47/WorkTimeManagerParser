@@ -110,3 +110,12 @@ npx vitest run
 - `src/js/core.js`
 - `src/js/core.test.js`
 - `src/js/all.js`
+
+---
+
+**Rejected 2026-07-10.** After Phase 2 completed, Items 2-4 were already done:
+- Item 2 (`deriveUniqueTags` fallback): function no longer exists.
+- Item 3 (inline stats in `computeTimeData`): returns only `{ sessionsByDate, uniqueTags, timeData }`.
+- Item 4 (`DEFAULT_EXCLUDED_TAGS` re-export): old name removed from `all.js`.
+
+The only remaining item was Item 1 (replace `getNotesHashtags` in `ui.js` with `tagFilter.items` string-includes). This was rejected as not worth the risk: it's a purely cosmetic refactor of a correct function, and the proposed replacement could introduce false substring matches (`tagFilter.items` may contain bare tags like `work` matching inside `framework`). No behavioral change justifies the churn.

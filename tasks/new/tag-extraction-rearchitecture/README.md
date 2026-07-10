@@ -33,7 +33,7 @@ Clean separation:
 |-------|-------|---------|
 | **1** | Structural split | Extract `deriveUniqueTags`, unify calls, move stats to all.js |
 | **2** | Fix new-format allocation | Remove bucket branch, let project tags split time |
-| **3** | Consolidation | Unify notes-cell filter logic, clean remaining duplication |
+| **3** | Consolidation | Unify notes-cell filter logic, clean remaining duplication | **Rejected** — work absorbed by earlier phases; see `tasks/rejected/tag-extraction-rearchitecture/` |
 
 ## Dependencies
 
