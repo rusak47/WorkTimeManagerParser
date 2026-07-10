@@ -1,5 +1,5 @@
 import { roundToHalf, datediff, durationToSeconds } from './utils.js';
-import { REST_TIME_MIN, DEFAULT_EXCLUDED_TAGS as DEFAULT_NOSUPPORT_TAGS, REST_EXCLUDED_TAGS } from './data.js';
+import { REST_TIME_MIN, DEFAULT_NOTSUPPORT_TAGS, REST_EXCLUDED_TAGS } from './data.js';
 
 /**
  * Assume session correct when calculated duration is same as derived
@@ -37,7 +37,7 @@ export function filterSessions(sessions, { startDate, endDate, excludeBreaks }) 
  * @param {*} specialTags 
  * @returns 
  */
-export function extractTags(sessions, specialTags) {
+export function extractTagsLegacy(sessions, specialTags) {
     const allTags = new Set(['#custom']);
     const allSupportTags = new Set();
 
@@ -46,7 +46,9 @@ export function extractTags(sessions, specialTags) {
             session.tags.forEach(tag => allTags.add(tag));
         }
 
-        if (session.notes) {
+        //legacy extracting from notes
+        //todo: should be applied to session.tags too;
+        if (session.notes) { 
             specialTags.forEach(specialTag => {
                 if (session.notes.toLowerCase().includes(specialTag.toLowerCase())) {
                     allTags.add(`${specialTag} support`);
@@ -55,7 +57,7 @@ export function extractTags(sessions, specialTags) {
 
             const hashtagsCustom = session.notes.match(/#[a-zA-Z]+[a-zA-Z0-9]{0,}/) || [];
             hashtagsCustom.forEach(tag => {
-                if (DEFAULT_NOSUPPORT_TAGS.includes(tag.toLowerCase())) {
+                if (DEFAULT_NOTSUPPORT_TAGS.includes(tag.toLowerCase())) {
                     allTags.add(tag);
                 } else {
                     allSupportTags.add(tag.toLowerCase());
@@ -70,8 +72,8 @@ export function extractTags(sessions, specialTags) {
     return { allTags, allSupportTags };
 }
 
-export function deriveUniqueTags(sessions, specialTags, selectedTags) {
-    const { allTags, allSupportTags } = extractTags(sessions, specialTags);
+export function deriveSelectedTags(sessions, specialTags, selectedTags) {
+    const { allTags, allSupportTags } = extractTagsLegacy(sessions, specialTags);
     const allTagsArray = Array.from(allTags).concat(Array.from(allSupportTags));
     const uniqueTags = selectedTags && selectedTags.length > 0
         ? [...selectedTags].sort()
@@ -79,7 +81,7 @@ export function deriveUniqueTags(sessions, specialTags, selectedTags) {
     return { allTags, allSupportTags, uniqueTags };
 }
 
-export function normalizeSessions(sessions) {
+export function normalizeSessionsLegacy(sessions) {
     return sessions.map(s => {
         const session = { ...s };
         if (session.accumulatedPauseTimeSec !== undefined && session.tags && session.tags.length > 1) {
@@ -105,44 +107,82 @@ export function normalizeSessions(sessions) {
     });
 }
 
-export function resolveSessionAllocation(session, specialTags, uniqueTags) {
-    if (specialTags.length > 0 && session.notes) {
-        for (const specialTag of specialTags) {
-            if (session.notes.toLowerCase().includes(specialTag)) {
-                return { type: 'single', tag: `${specialTag} support` };
+export function resolveSessionAllocationLegacy(session, specialTags, selectedTags) {
+    if (session.bucket) {
+        // New-format session: tags are bare (no # prefix), already in session.tags.
+        // Priority: rest → specialTag → redmine split → revision split → custom (first match) → #custom
+        if (session.bucket === 'rest') {
+            return { type: 'single', tag: 'rest' };
+        }
+
+        const tags = session.tags.filter(t => t !== 'work' && t !== 'rest');
+
+        // 1) specialTag match
+        if (specialTags.length > 0) {
+            for (const specialTag of specialTags) {
+                if (tags.some(t => t.toLowerCase() === specialTag.toLowerCase())) {
+                    return { type: 'single', tag: `${specialTag} support` };
+                }
             }
         }
-    }
 
-    if (session.bucket) {
-        if (session.bucket === "work") {
-            return { type: 'single', tag: '#custom' };
-        }
-        if (uniqueTags.includes(session.bucket)) {
-            return { type: 'single', tag: session.bucket };
-        }
-    }
+        const isTagged = (t) => selectedTags.includes(t) || selectedTags.includes('#' + t);
 
-    if (session.notes) {
+        // 2) redmine tags (all digits) — ALL matching split (bare tags)
+        const redmineMatches = tags.filter(t => /^\d+$/.test(t) && isTagged(t));
+        if (redmineMatches.length > 0) {
+            return redmineMatches.length === 1
+                ? { type: 'single', tag: redmineMatches[0] }
+                : { type: 'split', tags: redmineMatches };
+        }
+
+        // 3) revision tags (r + digits) — ALL matching split (bare tags)
+        const revisionMatches = tags.filter(t => /^r\d+$/.test(t) && isTagged(t));
+        if (revisionMatches.length > 0) {
+            return revisionMatches.length === 1
+                ? { type: 'single', tag: revisionMatches[0] }
+                : { type: 'split', tags: revisionMatches };
+        }
+
+        // 4) custom tags — first match wins (bare tag)
+        for (const tag of tags) {
+            if (isTagged(tag)) {
+                return { type: 'single', tag };
+            }
+        }
+
+        // 5) fallback to #custom
+        return { type: 'single', tag: '#custom' };
+    }
+    
+    if (session.notes) {//legacy
+        if (specialTags.length > 0) {//todo: why this have priority over others - are this tags given by user from inputs?
+            for (const specialTag of specialTags) {
+                if (session.notes.toLowerCase().includes(specialTag)) {
+                    return { type: 'single', tag: `${specialTag} support` };
+                }
+            }
+        }
         const redmineTags = session.notes.match(/#\d+/g);
         if (redmineTags?.length > 0) {
             const tag = redmineTags[0].toLowerCase();
-            if (uniqueTags.includes(tag)) {
+            if (selectedTags.includes(tag)) {
                 return { type: 'single', tag };
             }
         }
 
-        const customTags = session.notes.match(/#[a-zA-Z]+[a-zA-Z0-9]{0,}/);
+        // Matches hashtags: '#' followed by at least one letter, then optional letters or digits, eg revision version: #r1234
+        const customTags = session.notes.match(/#[a-zA-Z]+[a-zA-Z0-9]{0,}/); 
         if (customTags?.length > 0) {
             const tag = customTags[0].toLowerCase();
-            if (uniqueTags.includes(tag)) {
+            if (selectedTags.includes(tag)) {
                 return { type: 'single', tag };
             }
         }
     }
 
-    if (session.tags?.length > 0) {
-        const matchingTags = session.tags.filter(t => uniqueTags.includes(t));
+    if (session.tags?.length > 0) { //the rest unmatched is allocated to #custom
+        const matchingTags = session.tags.filter(t => selectedTags.includes(t));
         if (matchingTags.length > 0) {
             const resolved = matchingTags.map(t => t === 'work' ? '#custom' : t);
             return { type: 'split', tags: resolved };
@@ -201,6 +241,10 @@ export function getDateEntryTags(timeData, dateStr, uniqueTags) {
     return timeData[dateStr];
 }
 
+/**
+ * Remove tags with no time share 
+ * @param {*} timeData 
+ */
 export function cleanupRound(timeData) {
     Object.keys(timeData).forEach(date => {
         Object.keys(timeData[date]).forEach(tag => {
@@ -211,6 +255,13 @@ export function cleanupRound(timeData) {
     });
 }
 
+/**
+ * Spread official rest time to work, but skip REST_EXCLUDED_TAGS.
+ * If no candidates found, then allocate all rest to #custom
+ * @param {*} timeData 
+ * @param {*} restTimeMin 
+ * @param {*} debugMode 
+ */
 export function applyRestSpread(timeData, restTimeMin, debugMode) {
     Object.keys(timeData).forEach(date => {
         const restEligible = {};
@@ -262,6 +313,14 @@ export function applyRestSpread(timeData, restTimeMin, debugMode) {
     });
 }
 
+/**
+ * Apply holiday/weekend multipliers to respective day types. 
+ *  Only one of them is applied at a time - holiday has priority.
+ * @param {*} timeData 
+ * @param {*} holidayMultiplier 
+ * @param {*} weekendMultiplier 
+ * @param {*} calendarLookup 
+ */
 export function applyTimeMultipliers(timeData, holidayMultiplier, weekendMultiplier, calendarLookup) {
     if (holidayMultiplier !== 1 || weekendMultiplier !== 1) {
         Object.keys(timeData).forEach(date => {
@@ -289,6 +348,12 @@ export function applyTimeMultipliers(timeData, holidayMultiplier, weekendMultipl
     }
 }
 
+/**
+ * Compute useful statistics from prepared data
+ * @param {*} timeData 
+ * @param {*} uniqueTags 
+ * @returns 
+ */
 export function computeStats(timeData, uniqueTags) {
     let totalHours = 0;
     const tagTotals = {};
@@ -390,6 +455,12 @@ function handleOverlap(filteredSessions, effectiveAllocationMap, uniqueTags, tim
     });
 }
 
+/**
+ * Entry point for getting timetable ready for rendering
+ * @param {*} data 
+ * @param {*} options 
+ * @returns 
+ */
 export function processTimeDataLegacy(data, options = {}) {
     const {
         startDate = '2000-01-01',
@@ -409,12 +480,12 @@ export function processTimeDataLegacy(data, options = {}) {
         return null;
     }
 
-    const sessions = normalizeSessions(data.sessions);
+    const sessions = normalizeSessionsLegacy(data.sessions);
     const computeSessions = filterSessions(sessions, { startDate, endDate, excludeBreaks: false });
-    const { uniqueTags, allTags, allSupportTags } = deriveUniqueTags(computeSessions, additionalSpecialTags, selectedTagsFilter ?? []);
+    const { uniqueTags, allTags, allSupportTags } = deriveSelectedTags(computeSessions, additionalSpecialTags, selectedTagsFilter ?? []);
 
     const allocationMap = new Map();
-    computeSessions.forEach(s => allocationMap.set(s, resolveSessionAllocation(s, additionalSpecialTags, uniqueTags)));
+    computeSessions.forEach(s => allocationMap.set(s, resolveSessionAllocationLegacy(s, additionalSpecialTags, uniqueTags)));
 
     return computeTimeData({
         sessions: computeSessions,

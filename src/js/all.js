@@ -1,13 +1,13 @@
 import { syncSpecialTags, generateTableHeader, generateTableBody, generateTagLegend } from './ui.js';
 import { roundToHalf, copyAndEmailTimeTable2, datediff, durationToSeconds } from './utils.js';
-import { processTimeDataLegacy, deriveUniqueTags, filterSessions, computeStats } from './core.js';
-import { DEFAULT_EXCLUDED_TAGS, sampleData } from './data.js';
+import { processTimeDataLegacy, deriveSelectedTags, filterSessions, computeStats } from './core.js';
+import { DEFAULT_NOTSUPPORT_TAGS, sampleData } from './data.js';
 import holidaysRaw from '../holidays.json' with { type: 'json' };
 
 const HOLIDAY_LOCALE = Object.keys(holidaysRaw)[0];
 const CALENDAR_LOOKUP = holidaysRaw[HOLIDAY_LOCALE];
 
-export { DEFAULT_EXCLUDED_TAGS };
+export { DEFAULT_NOTSUPPORT_TAGS };
 
 let currentData = null;
 let isProcessingData = false;
@@ -155,7 +155,7 @@ export function processData(data, options = {}) {
     const periodSessions = filterSessions(data.sessions, { startDate, endDate, excludeBreaks });
 
     if (tagFilter) {
-        const tagInfo = deriveUniqueTags(periodSessions, specialTags, selectedTagsOverride ?? []);
+        const tagInfo = deriveSelectedTags(periodSessions, specialTags, selectedTagsOverride ?? []);
         const { allTags, allSupportTags } = tagInfo;
         const allTagsArray = Array.from(allTags).concat(Array.from(allSupportTags));
 

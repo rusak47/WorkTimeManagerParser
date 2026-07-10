@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeTimeData, processTimeDataLegacy, computeStats, normalizeSessions, filterSessions, extractTags, checkIsCorrectRecord, deriveUniqueTags, resolveSessionAllocation } from './core.js';
+import { computeTimeData, processTimeDataLegacy, computeStats, normalizeSessionsLegacy, filterSessions, extractTagsLegacy, checkIsCorrectRecord, deriveSelectedTags, resolveSessionAllocationLegacy } from './core.js';
 import { sampleData } from './data.js';
 import { roundToHalf, datediff, durationToSeconds } from './utils.js';
 
@@ -99,7 +99,7 @@ describe('checkIsCorrectRecord', () => {
 
 describe('extractTags', () => {
     it('extracts all unique tags from sessions', () => {
-        const { allTags, allSupportTags } = extractTags(sampleData.sessions, []);
+        const { allTags, allSupportTags } = extractTagsLegacy(sampleData.sessions, []);
         expect(allTags.has('work')).toBe(true);
         expect(allTags.has('meeting')).toBe(true);
         expect(allTags.has('coding')).toBe(true);
@@ -107,13 +107,13 @@ describe('extractTags', () => {
     });
 
     it('extracts support tags with special tags enabled', () => {
-        const { allTags } = extractTags(sampleData.sessions, ['PLR']);
+        const { allTags } = extractTagsLegacy(sampleData.sessions, ['PLR']);
         expect(allTags.has('PLR support')).toBe(true);
     });
 
     it('only extracts tags from the given set of sessions', () => {
         const singleDay = sampleData.sessions.filter(s => s.date === '2025-06-18');
-        const { allTags } = extractTags(singleDay, []);
+        const { allTags } = extractTagsLegacy(singleDay, []);
         expect(allTags.has('fitness')).toBe(true);
         expect(allTags.has('learning')).toBe(true);
         expect(allTags.has('work')).toBe(false);
@@ -121,13 +121,13 @@ describe('extractTags', () => {
     });
 });
 
-describe('deriveUniqueTags', () => {
+describe('deriveSelectedTags', () => {
     it('produces same output as manual extractTags + array build', () => {
         const sessions = filterSessions(sampleData.sessions, {
             startDate: '2026-07-01', endDate: '2026-07-03', excludeBreaks: false
         });
-        const result = deriveUniqueTags(sessions, [], []);
-        const { allTags, allSupportTags } = extractTags(sessions, []);
+        const result = deriveSelectedTags(sessions, [], []);
+        const { allTags, allSupportTags } = extractTagsLegacy(sessions, []);
         const expected = Array.from(allTags).concat(Array.from(allSupportTags)).sort();
         expect(result.uniqueTags).toEqual(expected);
     });
@@ -136,18 +136,18 @@ describe('deriveUniqueTags', () => {
         const sessions = filterSessions(sampleData.sessions, {
             startDate: '2026-07-01', endDate: '2026-07-03', excludeBreaks: false
         });
-        const result = deriveUniqueTags(sessions, [], ['#4203']);
+        const result = deriveSelectedTags(sessions, [], ['#4203']);
         expect(result.uniqueTags).toEqual(['#4203']);
     });
 
     it('accepts precomputedUniqueTags on computeTimeData', () => {
-        const normalized = normalizeSessions(sampleData.sessions);
+        const normalized = normalizeSessionsLegacy(sampleData.sessions);
         const sessions = filterSessions(normalized, {
             startDate: '2026-07-01', endDate: '2026-07-03', excludeBreaks: false
         });
-        const tagInfo = deriveUniqueTags(sessions, [], []);
+        const tagInfo = deriveSelectedTags(sessions, [], []);
         const allocationMap = new Map();
-        sessions.forEach(s => allocationMap.set(s, resolveSessionAllocation(s, [], tagInfo.uniqueTags)));
+        sessions.forEach(s => allocationMap.set(s, resolveSessionAllocationLegacy(s, [], tagInfo.uniqueTags)));
         const result = computeTimeData({
             sessions,
             precomputedUniqueTags: tagInfo,
@@ -160,40 +160,40 @@ describe('deriveUniqueTags', () => {
     });
 });
 
-describe('resolveSessionAllocation', () => {
+describe('resolveSessionAllocationLegacy', () => {
     it('priority 1: special tag match → support tag', () => {
         const s = { notes: 'work on #4182 bonfire task' };
-        expect(resolveSessionAllocation(s, ['bonfire'], ['bonfire support']))
+        expect(resolveSessionAllocationLegacy(s, ['bonfire'], ['bonfire support']))
             .toEqual({ type: 'single', tag: 'bonfire support' });
     });
 
-    it('priority 2: bucket:work → #custom', () => {
+    it('priority 2: bucket:work → #custom fallback when no tags match', () => {
         const s = { bucket: 'work', tags: ['work', 'paylar', 'n8n'], notes: '' };
-        expect(resolveSessionAllocation(s, [], ['#custom', 'work', 'paylar', 'n8n']))
+        expect(resolveSessionAllocationLegacy(s, [], ['#custom', 'work']))
             .toEqual({ type: 'single', tag: '#custom' });
     });
 
     it('priority 3a: #\\d+ in notes', () => {
         const s = { notes: 'fixed #4203 and #4204', tags: ['work'] };
-        expect(resolveSessionAllocation(s, [], ['#custom', '#4203', '#4204']))
+        expect(resolveSessionAllocationLegacy(s, [], ['#custom', '#4203', '#4204']))
             .toEqual({ type: 'single', tag: '#4203' });
     });
 
     it('priority 3b: #[a-zA-Z]+ in notes (no redmine match)', () => {
         const s = { notes: 'meeting with team #meet', tags: ['work'] };
-        expect(resolveSessionAllocation(s, [], ['#custom', '#meet']))
+        expect(resolveSessionAllocationLegacy(s, [], ['#custom', '#meet']))
             .toEqual({ type: 'single', tag: '#meet' });
     });
 
     it('priority 4: session.tags split (no notes match, no bucket)', () => {
         const s = { notes: 'general work', tags: ['work', 'paylar', 'n8n'] };
-        expect(resolveSessionAllocation(s, [], ['#custom', 'paylar', 'n8n', 'work']))
+        expect(resolveSessionAllocationLegacy(s, [], ['#custom', 'paylar', 'n8n', 'work']))
             .toEqual({ type: 'split', tags: ['#custom', 'paylar', 'n8n'] });
     });
 
     it('no match → null', () => {
         const s = { notes: '', tags: [] };
-        expect(resolveSessionAllocation(s, [], [])).toBeNull();
+        expect(resolveSessionAllocationLegacy(s, [], [])).toBeNull();
     });
 });
 
@@ -1219,7 +1219,7 @@ describe('normalize migrated-no-bucket sessions', () => {
 });
 
 describe('bucket tag allocation', () => {
-    it('uses bucket as sole tag instead of splitting across all tags', () => {
+    it('splits time among matching project tags instead of dumping to #custom', () => {
         const sessions = [{
             id: 1000,
             date: '2026-07-06',
@@ -1237,14 +1237,94 @@ describe('bucket tag allocation', () => {
             { sessions },
             { startDate: '2026-07-06', endDate: '2026-07-06' }
         );
-        // bucket=work → maps to #custom, full 2h. Only #custom has time, so
-        // restCount=1 → +1.0h rest → roundToHalf(3.0) = 3.0
+        // projectA is the first matching custom tag → gets 2h work time
+        // rest spread: only projectA has time → +1.0h rest → roundToHalf(3.0) = 3.0
+        // #custom gets 0 (work maps to #custom but project tags match first)
         const statsBucket = computeStats(result.timeData, result.uniqueTags);
-        expect(statsBucket.tagTotals['#custom']).toBe(3.0);
-        // other tags get 0 time (not eligible for rest spread since they have no time)
-        expect(statsBucket.tagTotals['projectA']).toBe(0);
+        expect(statsBucket.tagTotals['#custom']).toBe(0);
+        expect(statsBucket.tagTotals['projectA']).toBe(3.0);
         expect(statsBucket.tagTotals['projectB']).toBe(0);
         expect(statsBucket.tagTotals['projectC']).toBe(0);
+        expect(statsBucket.totalHours).toBe(3.0);
+    });
+
+    it('splits redmine tags evenly across all matching', () => {
+        const sessions = [{
+            id: 1001,
+            date: '2026-07-06',
+            startTime: '2026-07-06T10:00:00.000Z',
+            endTime: '2026-07-06T12:00:00.000Z',
+            duration: '02:00:00',
+            durationSec: 7200,
+            notes: '',
+            dayType: 'Workday',
+            tags: ['work', '4202', 'paylar', 'n8n', '4203'],
+            bucket: 'work',
+            isBreak: false,
+        }];
+        const result = processTimeDataLegacy(
+            { sessions },
+            { startDate: '2026-07-06', endDate: '2026-07-06' }
+        );
+        // redmine tags 4202 and 4203 split 2h → 1h each
+        // rest spread: both have time → +0.5h each → 1.5h each
+        const statsBucket = computeStats(result.timeData, result.uniqueTags);
+        expect(statsBucket.tagTotals['4202']).toBe(1.5);
+        expect(statsBucket.tagTotals['4203']).toBe(1.5);
+        expect(statsBucket.tagTotals['#custom']).toBe(0);
+        expect(statsBucket.totalHours).toBe(3.0);
+    });
+
+    it('splits revision tags evenly across all matching', () => {
+        const sessions = [{
+            id: 1002,
+            date: '2026-07-06',
+            startTime: '2026-07-06T10:00:00.000Z',
+            endTime: '2026-07-06T12:00:00.000Z',
+            duration: '02:00:00',
+            durationSec: 7200,
+            notes: '',
+            dayType: 'Workday',
+            tags: ['work', 'r1202', 'paylar', 'n8n', 'r1203'],
+            bucket: 'work',
+            isBreak: false,
+        }];
+        const result = processTimeDataLegacy(
+            { sessions },
+            { startDate: '2026-07-06', endDate: '2026-07-06' }
+        );
+        // revision tags r1202 and r1203 split 2h → 1h each
+        // rest spread: both have time → +0.5h each → 1.5h each
+        const statsBucket = computeStats(result.timeData, result.uniqueTags);
+        expect(statsBucket.tagTotals['r1202']).toBe(1.5);
+        expect(statsBucket.tagTotals['r1203']).toBe(1.5);
+        expect(statsBucket.tagTotals['#custom']).toBe(0);
+        expect(statsBucket.totalHours).toBe(3.0);
+    });
+
+    it('first custom tag wins when no redmine or revision tags', () => {
+        const sessions = [{
+            id: 1003,
+            date: '2026-07-06',
+            startTime: '2026-07-06T10:00:00.000Z',
+            endTime: '2026-07-06T12:00:00.000Z',
+            duration: '02:00:00',
+            durationSec: 7200,
+            notes: '',
+            dayType: 'Workday',
+            tags: ['work', 'n8n', 'test'],
+            bucket: 'work',
+            isBreak: false,
+        }];
+        const result = processTimeDataLegacy(
+            { sessions },
+            { startDate: '2026-07-06', endDate: '2026-07-06' }
+        );
+        // n8n is first matching custom tag → gets 2h + 1h rest = 3.0
+        // test gets 0 (first match wins)
+        const statsBucket = computeStats(result.timeData, result.uniqueTags);
+        expect(statsBucket.tagTotals['n8n']).toBe(3.0);
+        expect(statsBucket.tagTotals['test']).toBe(0);
         expect(statsBucket.totalHours).toBe(3.0);
     });
 });

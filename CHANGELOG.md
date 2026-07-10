@@ -3,10 +3,10 @@
 ## Unreleased
 
 ### Planned
-- **Phase 2: Fix new-format bucket allocation** — implement `normalizeSessions`-era allocation logic so bucket sessions distribute time across project tags instead of dumping to `#custom`
 - **Phase 3: Consolidate notes-cell filter and cleanup** — remove dead code, consolidate filter paths
 
 ### Added
+- **Phase 2: Fix new-format bucket allocation** — replaced legacy bucket shortcut with priority-based allocation (rest → specialTag → redmine split → revision split → custom first-match → `#custom`). New-format sessions (`session.bucket`) now distribute time across matching project tags instead of dumping everything to `#custom`. Redmine (`^\d+$`) and revision (`^r\d+$`) tags split time evenly; custom tags use first-match-wins. Tags returned bare (no `#` prefix) matching `uniqueTags` format. Import alias `DEFAULT_NOTSUPPORT_TAGS` renamed from `DEFAULT_EXCLUDED_TAGS`. 4 new bucket allocation tests (72 total).
 - **Phase 1c: Pure computation core** — fully separated data preparation (`processTimeData`) from pure computation (`computeTimeData`). Extracted all helpers to module-level (`deriveMaxDaysTimeSplit`, `computeEffectiveEnd`, `applyAllocation`, `dateEntry`, `cleanupRound`, `applyRestSpread`, `applyTimeMultipliers`, `computeStats`, `computeSessionOverlap`). `processTimeData` normalizes, derives tags, builds allocation map, then delegates to `computeTimeData` for the pure computation pass. accumBreak subtraction moved into `normalizeSessions`. Single `cleanupRound` restored after rest spread (before multipliers). Tests converted from `computeTimeData` to `processTimeData`
 - **Phase 1b: Extract allocation** — extracted `normalizeSessions()` and `resolveSessionAllocation()`; replaced inline normalization and `allocateTime` with pre-computed allocation map; old `allocateTime` deleted
 - **Phase 1a: Structural split** — extracted `deriveUniqueTags()` from `computeTimeData`; replaced inline tag extraction with `deriveUniqueTags` call in backward-compat path; `processData` now uses `deriveUniqueTags` for TomSelect population instead of inline `extractTags`; added `precomputedUniqueTags` option parameter

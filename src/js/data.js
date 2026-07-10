@@ -1,8 +1,8 @@
-export const DEFAULT_EXCLUDED_TAGS = [
+export const DEFAULT_NOTSUPPORT_TAGS = [
     '#docs', '#custom', '#translations', '#codereview', '#work', '#support', '#maintenance', '#bug', '#auth', '#review',
     '#rest', '#security', '#interactivity', '#vop', '#gw', '#payment', '#api', '#centrolinkvop', '#centrolink', '#soap',
     '#n8n', '#meet', '#spotbugs', '#lttax'
-];
+]; //tags that shouldnt have support appended
 export const REST_TIME_MIN = 60;
 export const REST_EXCLUDED_TAGS = ['#meet']; //keep this value const (rounding is ok); but dont split or add rest time 
 
