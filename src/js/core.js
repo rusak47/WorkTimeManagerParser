@@ -43,11 +43,17 @@ export function extractTagsLegacy(sessions, specialTags) {
 
     sessions.forEach(session => {
         if (session.tags && Array.isArray(session.tags)) {
-            session.tags.forEach(tag => allTags.add(tag));
+            session.tags.forEach(tag => {
+                allTags.add(tag);
+                if (tag !== 'work' && tag !== 'rest') {
+                    const tagKey = '#' + tag;
+                    if (!DEFAULT_NOTSUPPORT_TAGS.includes(tagKey)) {
+                        allTags.add(`${tag} support`);
+                    }
+                }
+            });
         }
 
-        //legacy extracting from notes
-        //todo: should be applied to session.tags too;
         if (session.notes) { 
             specialTags.forEach(specialTag => {
                 if (session.notes.toLowerCase().includes(specialTag.toLowerCase())) {
@@ -144,10 +150,20 @@ export function resolveSessionAllocationLegacy(session, specialTags, selectedTag
                 : { type: 'split', tags: revisionMatches };
         }
 
-        // 4) custom tags — first match wins (bare tag)
+        // 4) custom tags — first match wins
+        //    If tag === 'support' as last tag → take previous tag as support base
+        //    If #tag not in DEFAULT_NOTSUPPORT_TAGS → support-type: resolves to `{tag} support`
+        //    Otherwise → bare tag
+        if (tags.length > 1 && tags[tags.length - 1] === 'support' && isTagged(tags[tags.length - 2])) {
+            return { type: 'single', tag: `${tags[tags.length - 2]} support` };
+        }
         for (const tag of tags) {
             if (isTagged(tag)) {
-                return { type: 'single', tag };
+                const tagKey = '#' + tag;
+                if (DEFAULT_NOTSUPPORT_TAGS.includes(tagKey)) {
+                    return { type: 'single', tag };
+                }
+                return { type: 'single', tag: `${tag} support` };
             }
         }
 

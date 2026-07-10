@@ -1237,12 +1237,11 @@ describe('bucket tag allocation', () => {
             { sessions },
             { startDate: '2026-07-06', endDate: '2026-07-06' }
         );
-        // projectA is the first matching custom tag → gets 2h work time
-        // rest spread: only projectA has time → +1.0h rest → roundToHalf(3.0) = 3.0
-        // #custom gets 0 (work maps to #custom but project tags match first)
+        // projectA is not in DEFAULT_NOTSUPPORT_TAGS → resolves to `projectA support`
+        // rest spread: only projectA support has time → +1.0h rest → roundToHalf(3.0) = 3.0
         const statsBucket = computeStats(result.timeData, result.uniqueTags);
         expect(statsBucket.tagTotals['#custom']).toBe(0);
-        expect(statsBucket.tagTotals['projectA']).toBe(3.0);
+        expect(statsBucket.tagTotals['projectA support']).toBe(3.0);
         expect(statsBucket.tagTotals['projectB']).toBe(0);
         expect(statsBucket.tagTotals['projectC']).toBe(0);
         expect(statsBucket.totalHours).toBe(3.0);
