@@ -260,6 +260,7 @@ export function addNotesCell(tr, date, sessionsByDate, specialTags, tagFilter, s
 
     // Collect notes that match selected tags (or all if no tags selected)
     const dayNotes = [];
+    const allTags = [];
     sessionsByDate[date].forEach(session => {
         if (session.notes) {
             const shouldInclude = tagFilter.items.length === 0 || 
@@ -271,9 +272,9 @@ export function addNotesCell(tr, date, sessionsByDate, specialTags, tagFilter, s
                 ));
 
             if (shouldInclude) {
-                let noteText = session.notes.trim(); //session.notes.replace(/#\d+/g, '').trim();
+                let noteText = session.notes.trim();
                 if (session.tags && session.tags.length > 1) {
-                    noteText += ` (tags: ${session.tags.join(', ')})`;
+                    allTags.push(...session.tags.filter(t => t !== 'work'));
                 }
                 if (noteText) {
                     dayNotes.push(noteText);
@@ -283,5 +284,8 @@ export function addNotesCell(tr, date, sessionsByDate, specialTags, tagFilter, s
     });
 
     notesTd.textContent = dayNotes.join(', ');
+    if (allTags.length > 0) {
+        notesTd.title = [...new Set(allTags)].join(', ');
+    }
     tr.appendChild(notesTd);
 }
