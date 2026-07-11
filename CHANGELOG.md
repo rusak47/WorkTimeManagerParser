@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Changed
+- **Tags moved from note text to tooltip** — `addNotesCell` no longer appends tags to note text (which made notes too long). Tags are now shown as a native browser tooltip on hover via the `title` attribute. `work` tag excluded from tooltip. (bd122e0)
+
 ### Cancelled
 - **Phase 3: Consolidate notes-cell filter and cleanup** — rejected: Items 2-4 already done by Phases 1-2; last item (getNotesHashtags) was pure refactor not worth the risk
 
